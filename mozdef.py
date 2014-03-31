@@ -4,54 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # Copyright (c) 2014 Mozilla Corporation
-# Contributors:
-# gdestuynder@mozilla.com
-# mpurzynski@mozilla.com
-# jbryner@mozilla.com
-
-# Message sample
-# {
-#    "category": "authentication",
-#    "details": {
-#        "uid": 0,
-#        "username": "kang"
-#    },
-#    "hostname": "blah.private.scl3.mozilla.com",
-#    "processid": 14619,
-#    "processname": "./mozdef.py",
-#    "severity": "CRITICAL",
-#    "summary": "new test msg",
-#    "tags": [
-#        "bro",
-#        "auth"
-#    ],
-#    "timestamp": "2014-03-18T23:20:31.013344+00:00"
-# }
-
-# Module usage:
-# import mozdef
-# msg = mozdef.MozDefMsg('https://127.0.0.1:8443/events')
-# msg.verify_certificate = False # not recommended, security issue.
-# msg.verify_certificate = True # uses default certs from /etc/ssl/certs
-# msg.verify_certificate = '/etc/path/to/custom/cert'
-# msg.send('hello there')
-# msg.send('hello again', details={'uid': 0})
-# another_msg = mozdef.MozDefMsg('https://127.0.0.1:8443/events', tags=['bro'])
-# another_msg.send('knock knock')
-# another_msg.log['some-internal-attribute']
-# another_msg.send('who's there?')
-# etc.
-#
-# note: it is recommended to fill-in details={}, category='' and severity='' even thus those are optional
-# note: if you get a certificate failure, you can msg.verify_certificate = False - however this is not recommended,
-# and introduces a security issue. Use it for testing only.
-
-# TODO:
-# - Could report to syslog when fire_and_forget_mode is True and we fail
-# - Might be nicer to store the log msg as an object rather than a dict (such as MozDefLog.timestamp, MozDefLog.tags, etc.)
-# - Might want to limit category to well-known default categories instead of a string (such as "authentication", "daemon", etc.)
-# - Might want to limit severities to well-known default severities instead of a string (such as INFO, DEBUG, WARNING, CRITICAL, etc.)
-# - Might want to add documentation how to add your own CA certificate for this program to use
+# Author: gdestuynder@mozilla.com
 
 import os
 import sys
