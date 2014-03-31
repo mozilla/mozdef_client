@@ -5,6 +5,24 @@ Python lib for `MozDef clients <https://github.com/jeffbryner/MozDef/>`_.
 
 Install
 --------
+As a python module
+~~~~~~~~~~~~~~~~~~
+
+Manually:
+.. code::
+
+    make install
+
+As a rpm/deb package
+.. code::
+
+   make rpm
+   make deb
+   rpm -i <package.rpm>
+   dpkg -i <package.deb>
+
+From the code/integrate in my code
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Add to your project with:
 
 .. code::
@@ -12,10 +30,10 @@ Add to your project with:
    git submodule add https://github.com/gdestuynder/mozdef_lib mozdef
    git commit -a
 
-Make sure you've got the following Python modules, too:
+Python dependencies
+~~~~~~~~~~~~~~~~~~~
 
-* requests_futures
-** It'll work without requests_futures, but log msgs won't be non-blocking, which may be unexpected/bad.
+* requests_futures for python2 (optional but highly recommended, else messages are synchronous)
 * pytz
 
 Usage
