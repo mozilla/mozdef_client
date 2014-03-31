@@ -1,0 +1,2 @@
+pytz==2014.1
+requests-futures==0.9.4
