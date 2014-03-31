@@ -60,8 +60,10 @@ from datetime import datetime
 import pytz
 import json
 import socket
-from requests_futures.sessions import FuturesSession
-
+try:
+	from requests_futures.sessions import FuturesSession as Session
+except ImportError:
+	from requests import Session
 
 class MozDefError(Exception):
     def __init__(self, msg):
@@ -71,7 +73,7 @@ class MozDefError(Exception):
         return repr(self.msg)
 
 class MozDefMsg():
-    httpsession = FuturesSession(max_workers=20)
+    httpsession = Session()
 #Turns off needless and repetitive .netrc check for creds
     httpsession.trust_env = False
     debug = False

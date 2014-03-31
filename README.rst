@@ -15,6 +15,7 @@ Add to your project with:
 Make sure you've got the following Python modules, too:
 
 * requests_futures
+** It'll work without requests_futures, but log msgs won't be non-blocking, which may be unexpected/bad.
 * pytz
 
 Usage
