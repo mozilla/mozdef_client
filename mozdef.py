@@ -14,9 +14,9 @@ import pytz
 import json
 import socket
 try:
-	from requests_futures.sessions import FuturesSession as Session
+    from requests_futures.sessions import FuturesSession as Session
 except ImportError:
-	from requests import Session
+    from requests import Session
 
 class MozDefError(Exception):
     def __init__(self, msg):
@@ -78,8 +78,8 @@ class MozDefMsg():
             raise MozDefError('Summary is a required field')
 
         if self.debug:
-           print(json.dumps(log_msg, sort_keys=True, indent=4))
-           return
+            print(json.dumps(log_msg, sort_keys=True, indent=4))
+            return
 
         try:
             r = self.httpsession.post(self.mozdef_hostname, json.dumps(log_msg, sort_keys=True, indent=4), verify=self.verify_certificate, background_callback=self.httpsession_cb)
