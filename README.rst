@@ -42,14 +42,14 @@ Usage
 .. code::
    # The simple way
    import mozdef
-   msg = mozdef.MozDefMsg('https://127.0.0.1:8443/events', tags['openvpn', 'duosecurity'])
+   msg = mozdef.MozDefMsg('https://127.0.0.1:8443/events', tags=['openvpn', 'duosecurity'])
    msg.send('User logged in', details={'username': user})
 
    # Some more possibilities
    another_msg = mozdef.MozDefMsg('https://127.0.0.1:8443/events', tags=['bro'])
    another_msg.send('knock knock')
    another_msg.log['some-internal-attribute'] = 'smth'
-   another_msg.send('who's there?')
+   another_msg.send('who\'s there?')
    # etc.
 
 .. note::
