@@ -50,11 +50,53 @@ Usage
    another_msg.send('knock knock')
    another_msg.log['some-internal-attribute'] = 'smth'
    another_msg.send('who\'s there?')
+
+   # if you also want to send to syslog - this will flatten out the msg for syslog usage:
+   another_msg.sendToSyslog = True
+   another_msg.send("hi")
+   # if you do NOT want to send to MozDef (only makes complete sense if you send to syslog as per above option):
+   another_msg.syslogOnly = True
+   another_msg.send('This only goes to syslog, or nowhere if sendToSyslog is not True')
    # etc.
 
 .. note::
 
    If you can, it is recommended to fill-in details={}, category='' and severity='' even thus those are optional.
+
+Syslog compatibility
+~~~~~~~~~~~~~~~~~~~~
+
+Should you be needing Syslog compatibility (for example to stay compatible with non-MozDef setups without having to
+handle the conversion to syslog on your own) just set sendToSyslog to True for your message.
+
+The message will be flattened out and fields that syslog already provide will be stripped. Additionally, an attempt will
+be made to map the severity field to syslog's priority field if possible (the field name has to match a syslog priority
+field name).
+
+Example:
+
+.. code::
+
+    #JSON/MozDef output
+    {
+        "category": "event",
+        "details": {},
+        "hostname": "kang-vp",
+        "processid": 16347,
+        "processname": "mozdef.py",
+        "severity": "INFO",
+        "summary": "test msg",
+        "tags": [],
+        "timestamp": "2014-05-13T14:59:54.093572+00:00"
+    }
+    [...]
+
+    #Syslog output
+    May 13 14:59:54 kang-vp mozdef.py[16347]: details: {} tags: [] category: event summary: test syslog msg
+    May 13 14:59:54 kang-vp mozdef.py[16347]: details: {'uid': 0, 'username': 'kang'} tags: ['bro', 'auth'] category:
+    authentication summary: new test msg
+    May 13 14:59:54 kang-vp mozdef.py[16347]: details: {} tags: [] category: event summary: another test msg
+
 
 MozDef message structure
 ------------------------

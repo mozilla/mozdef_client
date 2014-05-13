@@ -13,6 +13,7 @@ from datetime import datetime
 import pytz
 import json
 import socket
+import syslog
 try:
     from requests_futures.sessions import FuturesSession as Session
 except ImportError:
@@ -26,6 +27,10 @@ class MozDefError(Exception):
         return repr(self.msg)
 
 class MozDefMsg():
+#If you need syslog emulation (flattens the msg and sends over syslog)
+    sendToSyslog = False
+#This disables sending to MozDef - Generally you'll want sendToSyslog set to True then
+    syslogOnly = False
     httpsession = Session()
 #Turns off needless and repetitive .netrc check for creds
     httpsession.trust_env = False
@@ -79,13 +84,41 @@ class MozDefMsg():
 
         if self.debug:
             print(json.dumps(log_msg, sort_keys=True, indent=4))
-            return
 
-        try:
-            r = self.httpsession.post(self.mozdef_hostname, json.dumps(log_msg, sort_keys=True, indent=4), verify=self.verify_certificate, background_callback=self.httpsession_cb)
-        except Exception as e:
-            if not self.fire_and_forget_mode:
-                raise e
+        if not self.syslogOnly:
+            try:
+                r = self.httpsession.post(self.mozdef_hostname, json.dumps(log_msg, sort_keys=True, indent=4), verify=self.verify_certificate, background_callback=self.httpsession_cb)
+            except Exception as e:
+                if not self.fire_and_forget_mode:
+                    raise e
+
+        if self.sendToSyslog:
+            syslog_msg = ''
+            syslog_severity = syslog.LOG_INFO
+            for i in log_msg:
+# If present and if possible convert severity to a syslog field
+                if i == 'severity':
+                    syslog_severity = self.str_to_syslog_severity(i)
+                    continue
+# These fields are already populated by syslog
+                if i == 'hostname' or i == 'processid' or i == 'timestamp' or i == 'processname':
+                    continue
+                syslog_msg += str(i)+': \''+str(log_msg[i])+'\' '
+            syslog.syslog(syslog_severity, syslog_msg)
+            syslog.closelog()
+
+    def str_to_syslog_severity(self, severity):
+        if severity == 'INFO':
+            return syslog.LOG_INFO
+        elif severity == 'WARNING':
+            return syslog.LOG_WARNING
+        elif severity == 'CRIT' or severity == 'CRITICAL':
+            return syslog.LOG_CRIT
+        elif severity == 'ERR' or severity == 'ERROR':
+            return syslog.LOG_ERR
+        elif severity == 'DEBUG':
+            return syslog.LOG_DEBUG
+        return syslog.LOG_INFO
 
     def httpsession_cb(self, session, response):
         if response.result().status_code != 200:
@@ -96,12 +129,21 @@ if __name__ == "__main__":
     print("Testing the MozDef logging module (no msg sent over the network)")
     print("Simple msg:")
     msg = MozDefMsg('https://127.0.0.1/events')
+    # This prints out the msg in JSON to stdout
     msg.debug = True
     msg.send('test msg')
+    msg.sendToSyslog = True
+    msg.send('test syslog msg')
 
     print("Complex msg:")
+    msg.sendToSyslog = False
+    msg.send('new test msg', 'authentication', 'CRITICAL', ['bro', 'auth'], {'uid': 0, 'username': 'kang'})
+    msg.sendToSyslog = True
     msg.send('new test msg', 'authentication', 'CRITICAL', ['bro', 'auth'], {'uid': 0, 'username': 'kang'})
 
     print("Modifying timestamp attribute:")
+    msg.sendToSyslog = False
     msg.log['timestamp'] = pytz.timezone('Europe/Paris').localize(datetime.now()).isoformat()
+    msg.send('another test msg')
+    msg.sendToSyslog = True
     msg.send('another test msg')
