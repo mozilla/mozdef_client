@@ -39,7 +39,7 @@ class MozDefMsg():
 #Never fail (ie no unexcepted exceptions sent to user, such as server/network not responding)
     fire_and_forget_mode = True
     log = {}
-    log['timestamp']   = pytz.timezone('UTC').localize(datetime.now()).isoformat()
+    log['timestamp']   = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
     log['hostname']    = socket.getfqdn()
     log['processid']   = os.getpid()
     log['processname'] = sys.argv[0]
