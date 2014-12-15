@@ -79,7 +79,7 @@ class MozDefMsg():
             raise MozDefError('details must be a dict')
         elif type(log_msg['tags']) != list:
             raise MozDefError('tags must be a list')
-        elif summary == None:
+        elif log_msg['summary'] == None:
             raise MozDefError('Summary is a required field')
 
         if self.debug:
