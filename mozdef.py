@@ -16,8 +16,10 @@ import socket
 import syslog
 try:
     from requests_futures.sessions import FuturesSession as Session
+    futures_loaded = True
 except ImportError:
     from requests import Session
+    futures_loaded = False
 
 class MozDefError(Exception):
     def __init__(self, msg):
@@ -79,7 +81,7 @@ class MozDefMsg():
             raise MozDefError('details must be a dict')
         elif type(log_msg['tags']) != list:
             raise MozDefError('tags must be a list')
-        elif summary == None:
+        elif log_msg['summary'] == None:
             raise MozDefError('Summary is a required field')
 
         if self.debug:
@@ -87,7 +89,10 @@ class MozDefMsg():
 
         if not self.syslogOnly:
             try:
-                r = self.httpsession.post(self.mozdef_hostname, json.dumps(log_msg, sort_keys=True, indent=4), verify=self.verify_certificate, background_callback=self.httpsession_cb)
+                if futures_loaded:
+                    r = self.httpsession.post(self.mozdef_hostname, json.dumps(log_msg, sort_keys=True, indent=4), verify=self.verify_certificate, background_callback=self.httpsession_cb)
+                else:
+                    r = self.httpsession.post(self.mozdef_hostname, json.dumps(log_msg, sort_keys=True, indent=4), verify=self.verify_certificate)
             except Exception as e:
                 if not self.fire_and_forget_mode:
                     raise e
