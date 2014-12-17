@@ -29,6 +29,10 @@ class MozDefError(Exception):
         return repr(self.msg)
 
 class MozDefMsg():
+#Event types this library can handle
+    MSGTYPE_UNKNOWN = 0
+    MSGTYPE_EVENT = 1
+    MSGTYPE_COMPLIANCE = 2
 #If you need syslog emulation (flattens the msg and sends over syslog)
     sendToSyslog = False
 #This disables sending to MozDef - Generally you'll want sendToSyslog set to True then
@@ -40,27 +44,35 @@ class MozDefMsg():
     verify_certificate = True
 #Never fail (ie no unexcepted exceptions sent to user, such as server/network not responding)
     fire_and_forget_mode = True
-    log = {}
-    log['timestamp']   = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
-    log['hostname']    = socket.getfqdn()
-    log['processid']   = os.getpid()
-    log['processname'] = sys.argv[0]
-    log['severity']    = 'INFO'
-    log['summary']     = None
-    log['category']    = 'event'
-    log['tags']        = list()
-    log['details']     = dict()
+#The type of message we will be sending with this object
+    msgtype = MSGTYPE_EVENT
+#Default fields utilized by the EVENT message type
+    log_event = {}
+    log_event['timestamp']   = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
+    log_event['hostname']    = socket.getfqdn()
+    log_event['processid']   = os.getpid()
+    log_event['processname'] = sys.argv[0]
+    log_event['severity']    = 'INFO'
+    log_event['summary']     = None
+    log_event['category']    = 'event'
+    log_event['tags']        = list()
+    log_event['details']     = dict()
 
-    def __init__(self, mozdef_hostname, summary=None, category='event', severity='INFO', tags=[], details={}):
+    def __init__(self, mozdef_hostname, summary=None, category='event', severity='INFO', tags=[], details={}, msgtype=None):
         self.summary = summary
         self.category = category
         self.severity = severity
         self.tags = tags
         self.details = details
         self.mozdef_hostname = mozdef_hostname
+        if msgtype != None:
+            self.msgtype = msgtype
+        if self.msgtype != self.MSGTYPE_EVENT and \
+            self.msgtype != self.MSGTYPE_COMPLIANCE:
+            raise MozDefError('invalid msgtype')
 
-    def send(self, summary=None, category=None, severity=None, tags=None, details=None):
-        log_msg = copy.copy(self.log)
+    def prepare_event(self, summary, category, severity, tags, details):
+        log_msg = copy.copy(self.log_event)
 
         if summary == None: log_msg['summary'] = self.summary
         else:               log_msg['summary'] = summary
@@ -83,6 +95,18 @@ class MozDefMsg():
             raise MozDefError('tags must be a list')
         elif log_msg['summary'] == None:
             raise MozDefError('Summary is a required field')
+
+        return log_msg
+
+    def send(self, summary=None, category=None, severity=None, tags=None, details=None):
+        log_msg = None
+
+        if self.msgtype == self.MSGTYPE_EVENT:
+            log_msg = self.prepare_event(summary, category, severity, tags, details)
+        elif self.msgtype == self.MSGTYPE_COMPLIANCE:
+            if details == None:
+                raise MozDefError('compliance message must have details parameter')
+            log_msg = details
 
         if self.debug:
             print(json.dumps(log_msg, sort_keys=True, indent=4))
