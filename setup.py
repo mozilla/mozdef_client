@@ -12,15 +12,15 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name = "mozdef",
-	py_modules=['mozdef'],
+    name = "mozdef_client",
+	py_modules=['mozdef_client'],
     version = "1.0.0",
     author = "Guillaume Destuynder",
     author_email = "gdestuynder@mozilla.com",
-    description = ("A client library to send messages using MozDef"),
+    description = ("A client library to send messages/events using MozDef"),
     license = "MPL",
     keywords = "mozdef client library",
-    url = "https://github.com/gdestuynder/mozdef_lib",
+    url = "https://github.com/gdestuynder/mozdef_client",
     long_description=read('README.rst'),
 	requires=['requests_futures', 'pytz'],
     classifiers=[

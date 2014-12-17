@@ -1,7 +1,10 @@
-mozdef_lib
-==========
+mozdef_client
+=============
 
-Python lib for `MozDef clients <https://github.com/jeffbryner/MozDef/>`_.
+Python client lib for `MozDef clients <https://github.com/jeffbryner/MozDef/>`_.
+
+Used to send events to MozDef ("log to MozDef") for example.
+This lib superseeds mozdef_lib, mainly due to the more confusing name of mozdef_lib.
 
 Install
 --------
@@ -27,7 +30,7 @@ Add to your project with:
 
 .. code::
 
-   git submodule add https://github.com/gdestuynder/mozdef_lib mozdef
+   git submodule add https://github.com/gdestuynder/mozdef_client
    git commit -a
 
 Python dependencies
@@ -41,12 +44,12 @@ Usage
 
 .. code::
    # The simple way
-   import mozdef
-   msg = mozdef.MozDefMsg('https://127.0.0.1:8443/events', tags=['openvpn', 'duosecurity'])
+   import mozdef_client
+   msg = mozdef_client.MozDefMsg('https://127.0.0.1:8443/events', tags=['openvpn', 'duosecurity'])
    msg.send('User logged in', details={'username': user})
 
    # Some more possibilities
-   another_msg = mozdef.MozDefMsg('https://127.0.0.1:8443/events', tags=['bro'])
+   another_msg = mozdef_client.MozDefMsg('https://127.0.0.1:8443/events', tags=['bro'])
    another_msg.send('knock knock')
    another_msg.log['some-internal-attribute'] = 'smth'
    another_msg.send('who\'s there?')
@@ -83,7 +86,7 @@ Example:
         "details": {},
         "hostname": "kang-vp",
         "processid": 16347,
-        "processname": "mozdef.py",
+        "processname": "mozdef_client.py",
         "severity": "INFO",
         "summary": "test msg",
         "tags": [],
@@ -92,14 +95,14 @@ Example:
     [...]
 
     #Syslog output
-    May 13 14:59:54 kang-vp mozdef.py[16347]: details: {} tags: [] category: event summary: test syslog msg
-    May 13 14:59:54 kang-vp mozdef.py[16347]: details: {'uid': 0, 'username': 'kang'} tags: ['bro', 'auth'] category:
+    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {} tags: [] category: event summary: test syslog msg
+    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {'uid': 0, 'username': 'kang'} tags: ['bro', 'auth'] category:
     authentication summary: new test msg
-    May 13 14:59:54 kang-vp mozdef.py[16347]: details: {} tags: [] category: event summary: another test msg
+    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {} tags: [] category: event summary: another test msg
 
 
-MozDef message structure
-------------------------
+MozDef Event message structure
+-------------------------------
 These are also the 'internal attributes' which you can modify.
 
 .. code::
@@ -112,7 +115,7 @@ These are also the 'internal attributes' which you can modify.
             },
             "hostname": "blah.private.scl3.mozilla.com",
             "processid": 14619,
-            "processname": "./mozdef.py",
+            "processname": "./mozdef_client.py",
             "severity": "CRITICAL",
             "summary": "new test msg",
             "tags": [

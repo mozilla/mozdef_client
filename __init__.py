@@ -4,5 +4,5 @@
 # Copyright (c) 2014 Mozilla Corporation
 # Author: gdestuynder@mozilla.com
 
-__all__ = ['mozdef']
-from mozdef import *
+__all__ = ['mozdef_client']
+from mozdef_client import *
