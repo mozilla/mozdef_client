@@ -33,6 +33,7 @@ class MozDefMsg():
     MSGTYPE_UNKNOWN = 0
     MSGTYPE_EVENT = 1
     MSGTYPE_COMPLIANCE = 2
+    validmap = {}
 #If you need syslog emulation (flattens the msg and sends over syslog)
     sendToSyslog = False
 #This disables sending to MozDef - Generally you'll want sendToSyslog set to True then
@@ -65,11 +66,36 @@ class MozDefMsg():
         self.tags = tags
         self.details = details
         self.mozdef_hostname = mozdef_hostname
+
+        self.validmap = {
+            self.MSGTYPE_COMPLIANCE: MozDefMsg.compliance_validate
+        }
+
         if msgtype != None:
             self.msgtype = msgtype
         if self.msgtype != self.MSGTYPE_EVENT and \
             self.msgtype != self.MSGTYPE_COMPLIANCE:
             raise MozDefError('invalid msgtype')
+
+# Validate required fields are set in the compliance message; this function
+# should align with the associated validation routine within the MozDef
+# compliance item custom plugin
+    @staticmethod
+    def compliance_validate(message):
+        for key in ['target', 'policy', 'check', 'compliance',
+                    'link', 'utctimestamp']:
+            if key not in message.keys():
+                return False
+        for key in ['level', 'name', 'url']:
+            if key not in message['policy'].keys():
+                return False
+        for key in ['description', 'location', 'name', 'test']:
+            if key not in message['check'].keys():
+                return False
+        for key in ['type', 'value']:
+            if key not in message['check']['test'].keys():
+                return False
+        return True
 
     def prepare_event(self, summary, category, severity, tags, details):
         log_msg = copy.copy(self.log_event)
@@ -110,6 +136,11 @@ class MozDefMsg():
 
         if self.debug:
             print(json.dumps(log_msg, sort_keys=True, indent=4))
+
+        for i in self.validmap.keys():
+            if i == self.msgtype:
+                if not self.validmap[i](log_msg):
+                    raise MozDefError('message failed validation')
 
         if not self.syslogOnly:
             try:
