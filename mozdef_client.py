@@ -29,11 +29,12 @@ class MozDefError(Exception):
         return repr(self.msg)
 
 class MozDefMsg():
-#Event types this library can handle
-    MSGTYPE_UNKNOWN = 0
+# Message types, safe guards
+    MSGTYPE_NONE = 0
     MSGTYPE_EVENT = 1
     MSGTYPE_COMPLIANCE = 2
-    validmap = {}
+    msgtype = MSGTYPE_NONE #unitinialized
+
 #If you need syslog emulation (flattens the msg and sends over syslog)
     sendToSyslog = False
 #This disables sending to MozDef - Generally you'll want sendToSyslog set to True then
@@ -45,21 +46,15 @@ class MozDefMsg():
     verify_certificate = True
 #Never fail (ie no unexcepted exceptions sent to user, such as server/network not responding)
     fire_and_forget_mode = True
-#The type of message we will be sending with this object
-    msgtype = MSGTYPE_EVENT
-#Default fields utilized by the EVENT message type
-    log_event = {}
-    log_event['timestamp']   = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
-    log_event['hostname']    = socket.getfqdn()
-    log_event['processid']   = os.getpid()
-    log_event['processname'] = sys.argv[0]
-    log_event['severity']    = 'INFO'
-    log_event['summary']     = None
-    log_event['category']    = 'event'
-    log_event['tags']        = list()
-    log_event['details']     = dict()
 
-    def __init__(self, mozdef_hostname, summary=None, category='event', severity='INFO', tags=[], details={}, msgtype=None):
+    log = {}
+
+    def init(self, *kargs):
+        self.log = {}
+        self.msgtype = self.MSGTYPE_NONE
+        self.__init__(kargs)
+
+    def __init__(self, mozdef_hostname, summary=None, category='event', severity='INFO', tags=[], details={}):
         self.summary = summary
         self.category = category
         self.severity = severity
@@ -67,87 +62,99 @@ class MozDefMsg():
         self.details = details
         self.mozdef_hostname = mozdef_hostname
 
-        self.validmap = {
-            self.MSGTYPE_COMPLIANCE: MozDefMsg.compliance_validate
-        }
+    def check_msgtype(self, owntype):
+        if self.msgtype != self.MSGTYPE_NONE and self.msgtype != owntype:
+            raise MozDefError('Please call init() again to change message type')
+        else:
+            self.msgtype = owntype
 
-        if msgtype != None:
-            self.msgtype = msgtype
-        if self.msgtype != self.MSGTYPE_EVENT and \
-            self.msgtype != self.MSGTYPE_COMPLIANCE:
-            raise MozDefError('invalid msgtype')
+    def send(self, *kargs):
+        self.send_event(kargs)
 
-# Validate required fields are set in the compliance message; this function
-# should align with the associated validation routine within the MozDef
-# compliance item custom plugin
-    @staticmethod
-    def compliance_validate(message):
-        for key in ['target', 'policy', 'check', 'compliance',
-                    'link', 'utctimestamp']:
-            if key not in message.keys():
-                return False
-        for key in ['level', 'name', 'url']:
-            if key not in message['policy'].keys():
-                return False
-        for key in ['description', 'location', 'name', 'test']:
-            if key not in message['check'].keys():
-                return False
-        for key in ['type', 'value']:
-            if key not in message['check']['test'].keys():
-                return False
-        return True
+    def send_event(self, summary=None, category=None, severity=None, tags=None, details=None):
+        self.check_msgtype(self.MSGTYPE_EVENT)
+        self.log['timestamp'] = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
+        self.log['hostname']    = socket.getfqdn()
+        self.log['processid']   = os.getpid()
+        self.log['processname'] = sys.argv[0]
+        self.log['severity']    = 'INFO'
+        self.log['summary']     = None
+        self.log['category']    = 'event'
+        self.log['tags']        = list()
+        self.log['details']     = dict()
 
-    def prepare_event(self, summary, category, severity, tags, details):
-        log_msg = copy.copy(self.log_event)
+        if summary == None: self.log['summary'] = self.summary
+        else:               self.log['summary'] = summary
 
-        if summary == None: log_msg['summary'] = self.summary
-        else:               log_msg['summary'] = summary
+        if category == None: self.log['category'] = self.category
+        else:                self.log['category'] = category
 
-        if category == None: log_msg['category'] = self.category
-        else:                log_msg['category'] = category
+        if severity == None: self.log['severity'] = self.severity
+        else:                self.log['severity'] = severity
 
-        if severity == None: log_msg['severity'] = self.severity
-        else:                log_msg['severity'] = severity
+        if tags == None: self.log['tags'] = self.tags
+        else:            self.log['tags'] = tags
 
-        if tags == None: log_msg['tags'] = self.tags
-        else:            log_msg['tags'] = tags
+        if details == None: self.log['details'] = self.details
+        else:               self.log['details'] = details
 
-        if details == None: log_msg['details'] = self.details
-        else:               log_msg['details'] = details
-
-        if type(log_msg['details']) != dict:
+        if type(self.log['details']) != dict:
             raise MozDefError('details must be a dict')
-        elif type(log_msg['tags']) != list:
+        elif type(self.log['tags']) != list:
             raise MozDefError('tags must be a list')
-        elif log_msg['summary'] == None:
+        elif self.log['summary'] == None:
             raise MozDefError('Summary is a required field')
 
-        return log_msg
+        self._send()
 
-    def send(self, summary=None, category=None, severity=None, tags=None, details=None):
-        log_msg = None
+    def send_compliance(self, target, policy, check, compliance, link=""):
+        self.check_msgtype(self.MSGTYPE_COMPLIANCE)
+        def validate_compliance(message):
+            """
+            Validate required fields are set in the compliance message; this function
+            should align with the associated validation routine within the MozDef
+            compliance item custom plugin
+            """
+            for key in ['target', 'policy', 'check', 'compliance',
+                        'link', 'utctimestamp']:
+                if key not in message.keys():
+                    return False
+            for key in ['level', 'name', 'url']:
+                if key not in message['policy'].keys():
+                    return False
+            for key in ['description', 'location', 'name', 'test']:
+                if key not in message['check'].keys():
+                    return False
+            for key in ['type', 'value']:
+                if key not in message['check']['test'].keys():
+                    return False
+            return True
 
-        if self.msgtype == self.MSGTYPE_EVENT:
-            log_msg = self.prepare_event(summary, category, severity, tags, details)
-        elif self.msgtype == self.MSGTYPE_COMPLIANCE:
-            if details == None:
-                raise MozDefError('compliance message must have details parameter')
-            log_msg = details
+        self.log['target'] = target
+        self.log['policy'] = policy
+        self.log['check'] = check
+        self.log['compliance'] = compliance
+        self.log['link'] = link
+        self.log['utctimestamp'] = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
 
+        if not validate_compliance(self.log):
+            raise MozDefError('message failed validation, check your fields')
+
+        self._send()
+
+    def _send(self):
         if self.debug:
-            print(json.dumps(log_msg, sort_keys=True, indent=4))
-
-        for i in self.validmap.keys():
-            if i == self.msgtype:
-                if not self.validmap[i](log_msg):
-                    raise MozDefError('message failed validation')
+            print(json.dumps(self.log, sort_keys=True, indent=4))
 
         if not self.syslogOnly:
             try:
                 if futures_loaded:
-                    r = self.httpsession.post(self.mozdef_hostname, json.dumps(log_msg, sort_keys=True, indent=4), verify=self.verify_certificate, background_callback=self.httpsession_cb)
+                    r = self.httpsession.post(self.mozdef_hostname, json.dumps(self.log, sort_keys=True, indent=4),
+                            verify=self.verify_certificate, background_callback=self.httpsession_cb)
                 else:
-                    r = self.httpsession.post(self.mozdef_hostname, json.dumps(log_msg, sort_keys=True, indent=4), verify=self.verify_certificate)
+                    r = self.httpsession.post(self.mozdef_hostname, json.dumps(self.log, sort_keys=True, indent=4),
+                            verify=self.verify_certificate)
+
             except Exception as e:
                 if not self.fire_and_forget_mode:
                     raise e
@@ -155,15 +162,15 @@ class MozDefMsg():
         if self.sendToSyslog:
             syslog_msg = ''
             syslog_severity = syslog.LOG_INFO
-            for i in log_msg:
+            for i in self.log:
 # If present and if possible convert severity to a syslog field
                 if i == 'severity':
-                    syslog_severity = self.str_to_syslog_severity(i)
+                    syslog_severity = self.str_to_syslog_severity(self.log[i])
                     continue
 # These fields are already populated by syslog
-                if i == 'hostname' or i == 'processid' or i == 'timestamp' or i == 'processname':
+                if i == 'hostname' or i == 'processid' or i == 'timestamp' or i == 'utctimestamp' or i == 'processname':
                     continue
-                syslog_msg += str(i)+': \''+str(log_msg[i])+'\' '
+                syslog_msg += str(i)+': \''+str(self.log[i])+'\' '
             syslog.syslog(syslog_severity, syslog_msg)
             syslog.closelog()
 
@@ -187,7 +194,7 @@ class MozDefMsg():
 
 if __name__ == "__main__":
     print("Testing the MozDef logging module (no msg sent over the network)")
-    print("Simple msg:")
+    print("Simple msg using compat function:")
     msg = MozDefMsg('https://127.0.0.1/events')
     # This prints out the msg in JSON to stdout
     msg.debug = True
@@ -197,13 +204,32 @@ if __name__ == "__main__":
 
     print("Complex msg:")
     msg.sendToSyslog = False
-    msg.send('new test msg', 'authentication', 'CRITICAL', ['bro', 'auth'], {'uid': 0, 'username': 'kang'})
+    msg.send_event('new test msg', 'authentication', 'CRITICAL', ['bro', 'auth'], {'uid': 0, 'username': 'kang'})
     msg.sendToSyslog = True
-    msg.send('new test msg', 'authentication', 'CRITICAL', ['bro', 'auth'], {'uid': 0, 'username': 'kang'})
+    msg.send_event('new test msg', 'authentication', 'CRITICAL', ['bro', 'auth'], {'uid': 0, 'username': 'kang'})
 
     print("Modifying timestamp attribute:")
     msg.sendToSyslog = False
     msg.log['timestamp'] = pytz.timezone('Europe/Paris').localize(datetime.now()).isoformat()
-    msg.send('another test msg')
+    msg.send_event('another test msg')
     msg.sendToSyslog = True
-    msg.send('another test msg')
+    msg.send_event('another test msg')
+
+    print("Sending compliance message")
+    msg.init('https://127.0.0.1/compliance')
+    check = {
+            'name': 'SSH root login',
+            'test': {
+                'type': 'Unknown',
+                'value': 'grep RootLogin'
+                },
+            'location': 'Unknown',
+            'description': 'Checks for ssh root login off',
+            }
+    policy = {
+            'level': 'low',
+            'name': 'System policy',
+            'url': 'https://www.example.com/systempolicy/'
+            }
+    msg.send_compliance("agent.mozdef.com", policy, check, False,
+                        "https://www.example.com/systempolicy/compliance_check_one")
