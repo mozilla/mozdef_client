@@ -33,6 +33,7 @@ class MozDefMsg():
     MSGTYPE_NONE = 0
     MSGTYPE_EVENT = 1
     MSGTYPE_COMPLIANCE = 2
+    MSGTYPE_VULNERABILITY = 3
     msgtype = MSGTYPE_NONE #unitinialized
 
 #If you need syslog emulation (flattens the msg and sends over syslog)
@@ -105,6 +106,28 @@ class MozDefMsg():
         elif self.log['summary'] == None:
             raise MozDefError('Summary is a required field')
 
+        self._send()
+
+    def send_vulnerability(self, vulnmsg):
+# Send a vulnerability event. We basically just do validation that all the required
+# fields are set here, the message argument is not modified.
+        def validate_vulnerability(message):
+            for k in ['utctimestamp', 'description', 'vuln', 'asset']:
+                if k not in message.keys():
+                    return False
+            for k in ['assetid', 'ipv4address', 'hostname', 'macaddress']:
+                if k not in message['asset'].keys():
+                    return False
+            for k in ['status', 'vulnid', 'title', 'discovery_time', 'age_days',
+                      'known_malware', 'known_exploits', 'cvss', 'cves']:
+                if k not in message['vuln'].keys():
+                    return False
+            return True
+
+        self.check_msgtype(self.MSGTYPE_VULNERABILITY)
+        self.log = vulnmsg
+        if not validate_vulnerability(self.log):
+            raise MozDefError('message failed validation, check your fields')
         self._send()
 
     def send_compliance(self, target, policy, check, compliance, link=""):
