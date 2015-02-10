@@ -130,7 +130,7 @@ class MozDefMsg():
             raise MozDefError('message failed validation, check your fields')
         self._send()
 
-    def send_compliance(self, target, policy, check, compliance, link=""):
+    def send_compliance(self, target, policy, check, compliance, link="", tags=None):
         self.check_msgtype(self.MSGTYPE_COMPLIANCE)
         def validate_compliance(message):
             """
@@ -158,6 +158,8 @@ class MozDefMsg():
         self.log['check'] = check
         self.log['compliance'] = compliance
         self.log['link'] = link
+        if tags != None:
+            self.log['tags'] = tags
         self.log['utctimestamp'] = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
 
         if not validate_compliance(self.log):
