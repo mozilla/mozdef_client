@@ -116,7 +116,8 @@ class MozDefCompliance(MozDefMessage):
 
 class MozDefVulnerability(MozDefMessage):
     def validate_log(self):
-        for k in ['utctimestamp', 'description', 'vuln', 'asset']:
+        for k in ['utctimestamp', 'description', 'vuln', 'asset',
+            'sourcename']:
             if k not in self._sendlog.keys():
                 return False
         for k in ['assetid', 'ipv4address', 'hostname', 'macaddress']:
