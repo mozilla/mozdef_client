@@ -20,6 +20,7 @@ try:
 except ImportError:
     from requests import Session
     futures_loaded = False
+import unittest
 
 class MozDefError(Exception):
     def __init__(self, msg):
@@ -28,233 +29,253 @@ class MozDefError(Exception):
     def __str__(self):
         return repr(self.msg)
 
-class MozDefMsg():
-# Message types, safe guards
+class MozDefMessage(object):
+    # Supported message types
     MSGTYPE_NONE = 0
     MSGTYPE_EVENT = 1
     MSGTYPE_COMPLIANCE = 2
     MSGTYPE_VULNERABILITY = 3
-    msgtype = MSGTYPE_NONE #unitinialized
 
-#If you need syslog emulation (flattens the msg and sends over syslog)
-    sendToSyslog = False
-#This disables sending to MozDef - Generally you'll want sendToSyslog set to True then
-    syslogOnly = False
-    httpsession = Session()
-#Turns off needless and repetitive .netrc check for creds
-    httpsession.trust_env = False
-    debug = False
-    verify_certificate = True
-#Never fail (ie no unexcepted exceptions sent to user, such as server/network not responding)
-    fire_and_forget_mode = True
+    def __init__(self, url):
+        self._msgtype = self.MSGTYPE_NONE
 
-    log = {}
-
-    def init(self, *kargs):
         self.log = {}
-        self.msgtype = self.MSGTYPE_NONE
-        self.__init__(kargs)
+        self._sendlog = {}
 
-    def __init__(self, mozdef_hostname, summary=None, category='event', severity='INFO', tags=[], details={}):
-        self.summary = summary
-        self.category = category
-        self.severity = severity
-        self.tags = tags
-        self.details = details
-        self.mozdef_hostname = mozdef_hostname
+        self._httpsession = Session()
+        self._httpsession.trust_env = False
+        self._url = url
 
-    def check_msgtype(self, owntype):
-        if self.msgtype != self.MSGTYPE_NONE and self.msgtype != owntype:
-            raise MozDefError('Please call init() again to change message type')
+        # Set some default options
+        self._send_to_syslog = False
+        self._syslog_only = False
+        self._fire_and_forget = False
+        self._verify_certificate = False
+
+    def validate(self):
+        return True
+
+    def validate_log(self):
+        return True
+
+    def construct(self):
+        raise MozDefError('subclass of MozDefMessage must override construct()')
+
+    def _httpsession_cb(self, session, response):
+        if response.result().status_code != 200:
+            if not self._fire_and_forget:
+                raise MozDefError('POST failed with code %r' % \
+                    response.result().status_code)
+
+    def send(self):
+        if not self.validate():
+            raise MozDefError('message failed validation')
+        self.construct()
+        if not self.validate_log():
+            raise MozDefError('message failed post construct validation')
+
+        buf = json.dumps(self._sendlog, sort_keys=True, indent=4)
+        if futures_loaded:
+            self._httpsession.post(self._url, buf,
+                verify=self._verify_certificate,
+                background_callback=self._httpsession_cb)
         else:
-            self.msgtype = owntype
-
-    def send(self, *kargs):
-        self.send_event(kargs)
-
-    def send_event(self, summary=None, category=None, severity=None, tags=None, details=None):
-        self.check_msgtype(self.MSGTYPE_EVENT)
-        self.log['timestamp'] = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
-        self.log['hostname']    = socket.getfqdn()
-        self.log['processid']   = os.getpid()
-        self.log['processname'] = sys.argv[0]
-        self.log['severity']    = 'INFO'
-        self.log['summary']     = None
-        self.log['category']    = 'event'
-        self.log['tags']        = list()
-        self.log['details']     = dict()
-
-        if summary == None: self.log['summary'] = self.summary
-        else:               self.log['summary'] = summary
-
-        if category == None: self.log['category'] = self.category
-        else:                self.log['category'] = category
-
-        if severity == None: self.log['severity'] = self.severity
-        else:                self.log['severity'] = severity
-
-        if tags == None: self.log['tags'] = self.tags
-        else:            self.log['tags'] = tags
-
-        if details == None: self.log['details'] = self.details
-        else:               self.log['details'] = details
-
-        if type(self.log['details']) != dict:
-            raise MozDefError('details must be a dict')
-        elif type(self.log['tags']) != list:
-            raise MozDefError('tags must be a list')
-        elif self.log['summary'] == None:
-            raise MozDefError('Summary is a required field')
-
-        self._send()
-
-    def send_vulnerability(self, vulnmsg):
-# Send a vulnerability event. We basically just do validation that all the required
-# fields are set here, the message argument is not modified.
-        def validate_vulnerability(message):
-            for k in ['utctimestamp', 'description', 'vuln', 'asset']:
-                if k not in message.keys():
-                    return False
-            for k in ['assetid', 'ipv4address', 'hostname', 'macaddress']:
-                if k not in message['asset'].keys():
-                    return False
-            for k in ['status', 'vulnid', 'title', 'discovery_time', 'age_days',
-                      'known_malware', 'known_exploits', 'cvss', 'cves']:
-                if k not in message['vuln'].keys():
-                    return False
-            return True
-
-        self.check_msgtype(self.MSGTYPE_VULNERABILITY)
-        self.log = vulnmsg
-        if not validate_vulnerability(self.log):
-            raise MozDefError('message failed validation, check your fields')
-        self._send()
-
-    def send_compliance(self, target, policy, check, compliance, link="", tags=None):
-        self.check_msgtype(self.MSGTYPE_COMPLIANCE)
-        def validate_compliance(message):
-            """
-            Validate required fields are set in the compliance message; this function
-            should align with the associated validation routine within the MozDef
-            compliance item custom plugin
-            """
-            for key in ['target', 'policy', 'check', 'compliance',
-                        'link', 'utctimestamp']:
-                if key not in message.keys():
-                    return False
-            for key in ['level', 'name', 'url']:
-                if key not in message['policy'].keys():
-                    return False
-            for key in ['description', 'location', 'name', 'test']:
-                if key not in message['check'].keys():
-                    return False
-            for key in ['type', 'value']:
-                if key not in message['check']['test'].keys():
-                    return False
-            return True
-
-        self.log['target'] = target
-        self.log['policy'] = policy
-        self.log['check'] = check
-        self.log['compliance'] = compliance
-        self.log['link'] = link
-        if tags != None:
-            self.log['tags'] = tags
-        self.log['utctimestamp'] = pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
-
-        if not validate_compliance(self.log):
-            raise MozDefError('message failed validation, check your fields')
-
-        self._send()
-
-    def _send(self):
-        if self.debug:
-            print(json.dumps(self.log, sort_keys=True, indent=4))
-
-        if not self.syslogOnly:
-            try:
-                if futures_loaded:
-                    r = self.httpsession.post(self.mozdef_hostname, json.dumps(self.log, sort_keys=True, indent=4),
-                            verify=self.verify_certificate, background_callback=self.httpsession_cb)
-                else:
-                    r = self.httpsession.post(self.mozdef_hostname, json.dumps(self.log, sort_keys=True, indent=4),
-                            verify=self.verify_certificate)
-
-            except Exception as e:
-                if not self.fire_and_forget_mode:
-                    raise e
-
-        if self.sendToSyslog:
-            syslog_msg = ''
-            syslog_severity = syslog.LOG_INFO
-            for i in self.log:
-# If present and if possible convert severity to a syslog field
-                if i == 'severity':
-                    syslog_severity = self.str_to_syslog_severity(self.log[i])
-                    continue
-# These fields are already populated by syslog
-                if i == 'hostname' or i == 'processid' or i == 'timestamp' or i == 'utctimestamp' or i == 'processname':
-                    continue
-                syslog_msg += str(i)+': \''+str(self.log[i])+'\' '
-            syslog.syslog(syslog_severity, syslog_msg)
-            syslog.closelog()
-
-    def str_to_syslog_severity(self, severity):
-        if severity == 'INFO':
-            return syslog.LOG_INFO
-        elif severity == 'WARNING':
-            return syslog.LOG_WARNING
-        elif severity == 'CRIT' or severity == 'CRITICAL':
-            return syslog.LOG_CRIT
-        elif severity == 'ERR' or severity == 'ERROR':
-            return syslog.LOG_ERR
-        elif severity == 'DEBUG':
-            return syslog.LOG_DEBUG
-        return syslog.LOG_INFO
+            self._httpsession.post(self._url, buf,
+                verify=self._verify_certificate)
 
     def httpsession_cb(self, session, response):
         if response.result().status_code != 200:
             if not self.fire_and_forget_mode:
-                raise MozDefError("HTTP POST failed with code %r" % response.result().status_code)
+                raise MozDefError("HTTP POST failed with code %r" % \
+                    response.result().status_code)
+
+class MozDefCompliance(MozDefMessage):
+    def validate_log(self):
+        for k in ['target', 'policy', 'check', 'compliance', 'link',
+            'utctimestamp']:
+            if k not in self._sendlog.keys():
+                return False
+        for k in ['level', 'name', 'url']:
+            if k not in self._sendlog['policy'].keys():
+                return False
+        for k in ['description', 'location', 'name', 'test']:
+            if k not in self._sendlog['check'].keys():
+                return False
+        for k in ['type', 'value']:
+            if k not in self._sendlog['check']['test'].keys():
+                return False
+        return True
+
+    def construct(self):
+        self._sendlog = self.log
+
+    def __init__(self, url):
+        MozDefMessage.__init__(self, url)
+        self._msgtype = self.MSGTYPE_COMPLIANCE
+
+class MozDefVulnerability(MozDefMessage):
+    def validate_log(self):
+        for k in ['utctimestamp', 'description', 'vuln', 'asset']:
+            if k not in self._sendlog.keys():
+                return False
+        for k in ['assetid', 'ipv4address', 'hostname', 'macaddress']:
+            if k not in self._sendlog['asset'].keys():
+                return False
+        for k in ['status', 'vulnid', 'title', 'discovery_time', 'age_days',
+            'known_malware', 'known_exploits', 'cvss', 'cves']:
+            if k not in self._sendlog['vuln'].keys():
+                return False
+        return True
+
+    def construct(self):
+        self._sendlog = self.log
+
+    def __init__(self, url):
+        MozDefMessage.__init__(self, url)
+        self._msgtype = self.MSGTYPE_VULNERABILITY
+
+class MozDefEvent(MozDefMessage):
+    SEVERITY_INFO = 0
+    SEVERITY_WARNING = 1
+    SEVERITY_CRITICAL = 2
+    SEVERITY_ERROR = 3
+    SEVERITY_DEBUG = 4
+
+    _sevmap = {
+        SEVERITY_INFO: 'INFO',
+        SEVERITY_WARNING: 'WARNING',
+        SEVERITY_CRITICAL: 'CRITICAL',
+        SEVERITY_ERROR: 'ERROR',
+        SEVERITY_DEBUG: 'DEBUG',
+    }
+
+    def validate(self):
+        if self.summary == None or self.summary == '':
+            return False
+        return True
+
+    def construct(self):
+        self._sendlog = {}
+        self._sendlog['timestamp'] = \
+            pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
+        self._sendlog['category'] = self._category
+        self._sendlog['details'] = self.details
+        self._sendlog['summary'] = self.summary
+        self._sendlog['tags'] = self.tags
+
+    def __init__(self, url):
+        MozDefMessage.__init__(self, url)
+        self._msgtype = self.MSGTYPE_EVENT
+        self._category = 'event'
+        self._process_name = sys.argv[0]
+        self._process_id = os.getpid()
+        self._hostname = socket.getfqdn()
+        self._severity = self.SEVERITY_INFO
+        self._timestamp = None
+
+        self.summary = None
+        self.tags = []
+        self.details = {}
+
+class MozDefTests(unittest.TestCase):
+    def create_valid_vuln(self):
+        self.vulnmsg = {}
+        self.vulnmsg['description'] = 'system vulnerability management automation'
+        self.vulnmsg['utctimestamp'] = '2015-01-21T15:33:51.136378+00:00'
+        self.vulnmsg['sourcename'] = 'development'
+        self.vulnmsg['asset'] = {}
+        self.vulnmsg['asset']['assetid'] = 23
+        self.vulnmsg['asset']['ipv4address'] = '1.2.3.4'
+        self.vulnmsg['asset']['macaddress'] = ''
+        self.vulnmsg['asset']['hostname'] = 'git.mozilla.com'
+        self.vulnmsg['vuln'] = {}
+        self.vulnmsg['vuln']['status'] = 'new'
+        self.vulnmsg['vuln']['vulnid'] = 'nexpose:43883'
+        self.vulnmsg['vuln']['title'] = \
+            'RHSA-2013:1475: postgresql and postgresql84 security update'
+        self.vulnmsg['vuln']['discovery_time'] = 1421845863
+        self.vulnmsg['vuln']['age_days'] = 32.7
+        self.vulnmsg['vuln']['known_malware'] = False
+        self.vulnmsg['vuln']['known_exploits'] = False
+        self.vulnmsg['vuln']['cvss'] = 8.5
+        self.vulnmsg['vuln']['cves'] = ['CVE-2013-022', 'CVE-2013-1900']
+
+    def create_valid_comp(self):
+        self.compmsg = {}
+        self.compmsg['target'] = 'www.mozilla.com'
+        self.compmsg['utctimestamp'] = '2015-03-04T18:25:52.849272+00:00'
+        self.compmsg['tags'] = {
+            'operator': 'it',
+            'autogroup': 'opsec'
+        }
+        self.compmsg['compliance'] = True
+        self.compmsg['link'] = 'http://a.url'
+        self.compmsg['policy'] = {
+            'url': 'http://another.url',
+            'name': 'system',
+            'level': 'medium'
+        }
+        self.compmsg['check'] = {
+            'test': {
+                'type': 'nexpose',
+                'name': 'assess',
+                'value': 'nexpose'
+            },
+            'location': 'endpoint',
+            'ref': 'sysmediumupdates1',
+            'name': 'vulnerability scanner check',
+            'description': 'validate system patch level'
+        }
+
+    def setUp(self):
+        self.create_valid_vuln()
+        self.create_valid_comp()
+
+    def testFailMessageSend(self):
+        m = MozDefMessage('http://127.0.0.1')
+        with self.assertRaises(MozDefError):
+            m.send()
+
+    def testFailEventSend(self):
+        m = MozDefEvent('http://127.0.0.1:1/nonexistent')
+        with self.assertRaises(Exception):
+            m.send()
+
+    def testMozdefEvent(self):
+        m = MozDefEvent('http://127.0.0.1')
+        self.assertIsNotNone(m)
+        self.assertEqual(m._msgtype, MozDefMessage.MSGTYPE_EVENT)
+
+    def testMozdefEventValidate(self):
+        m = MozDefEvent('http://127.0.0.1')
+        self.assertFalse(m.validate())
+        m.summary = 'test event'
+        self.assertTrue(m.validate())
+
+    def testMozdefEventConstruct(self):
+        m = MozDefEvent('http://127.0.0.1')
+        m.summary = 'test event'
+        m.construct()
+        self.assertEqual(m._sendlog['category'], 'event')
+        self.assertEqual(m._sendlog['summary'], 'test event')
+
+    def testMozdefVulnValidate(self):
+        m = MozDefVulnerability('http://127.0.0.1')
+        self.assertTrue(m.validate())
+        m.construct()
+        self.assertFalse(m.validate_log())
+        m.log = self.vulnmsg
+        m.construct()
+        self.assertTrue(m.validate_log())
+
+    def testMozdefComplianceValidate(self):
+        m = MozDefCompliance('http://127.0.0.1')
+        self.assertTrue(m.validate())
+        m.construct()
+        self.assertFalse(m.validate_log())
+        m.log = self.compmsg
+        m.construct()
+        self.assertTrue(m.validate_log())
 
 if __name__ == "__main__":
-    print("Testing the MozDef logging module (no msg sent over the network)")
-    print("Simple msg using compat function:")
-    msg = MozDefMsg('https://127.0.0.1/events')
-    # This prints out the msg in JSON to stdout
-    msg.debug = True
-    msg.send('test msg')
-    msg.sendToSyslog = True
-    msg.send('test syslog msg')
-
-    print("Complex msg:")
-    msg.sendToSyslog = False
-    msg.send_event('new test msg', 'authentication', 'CRITICAL', ['bro', 'auth'], {'uid': 0, 'username': 'kang'})
-    msg.sendToSyslog = True
-    msg.send_event('new test msg', 'authentication', 'CRITICAL', ['bro', 'auth'], {'uid': 0, 'username': 'kang'})
-
-    print("Modifying timestamp attribute:")
-    msg.sendToSyslog = False
-    msg.log['timestamp'] = pytz.timezone('Europe/Paris').localize(datetime.now()).isoformat()
-    msg.send_event('another test msg')
-    msg.sendToSyslog = True
-    msg.send_event('another test msg')
-
-    print("Sending compliance message")
-    msg.init('https://127.0.0.1/compliance')
-    check = {
-            'name': 'SSH root login',
-            'test': {
-                'type': 'Unknown',
-                'value': 'grep RootLogin'
-                },
-            'location': 'Unknown',
-            'description': 'Checks for ssh root login off',
-            }
-    policy = {
-            'level': 'low',
-            'name': 'System policy',
-            'url': 'https://www.example.com/systempolicy/'
-            }
-    msg.send_compliance("agent.mozdef.com", policy, check, False,
-                        "https://www.example.com/systempolicy/compliance_check_one")
+    unittest.main(verbosity=2)
