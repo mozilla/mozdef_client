@@ -65,6 +65,13 @@ class MozDefMessage(object):
     def set_fire_and_forget(self, f):
         self._fire_and_forget = f
 
+    def set_send_to_syslog(self, f, only_syslog=False):
+        self._send_to_syslog = f
+        self._syslog_only = only_syslog
+
+    def syslog_convert(self):
+        raise MozDefError('message type does not support syslog conversion')
+
     def construct(self):
         raise MozDefError('subclass of MozDefMessage must override construct()')
 
@@ -74,12 +81,20 @@ class MozDefMessage(object):
                 raise MozDefError('POST failed with code %r' % \
                     response.result().status_code)
 
+    def send_syslog(self):
+        raise MozDefError('message type does not support syslog submission')
+
     def send(self):
         if not self.validate():
             raise MozDefError('message failed validation')
         self.construct()
         if not self.validate_log():
             raise MozDefError('message failed post construct validation')
+
+        if self._send_to_syslog:
+            self.send_syslog()
+            if self._syslog_only:
+                return
 
         buf = json.dumps(self._sendlog, sort_keys=True, indent=4)
         if futures_loaded:
@@ -146,17 +161,31 @@ class MozDefEvent(MozDefMessage):
     SEVERITY_DEBUG = 4
 
     _sevmap = {
-        SEVERITY_INFO: 'INFO',
-        SEVERITY_WARNING: 'WARNING',
-        SEVERITY_CRITICAL: 'CRITICAL',
-        SEVERITY_ERROR: 'ERROR',
-        SEVERITY_DEBUG: 'DEBUG',
+        SEVERITY_INFO: ['INFO', syslog.LOG_INFO],
+        SEVERITY_WARNING: ['WARNING', syslog.LOG_WARNING],
+        SEVERITY_CRITICAL: ['CRIT', syslog.LOG_CRIT],
+        SEVERITY_ERROR: ['ERR', syslog.LOG_ERR],
+        SEVERITY_DEBUG: ['DEBUG', syslog.LOG_DEBUG],
     }
 
     def validate(self):
         if self.summary == None or self.summary == '':
             return False
         return True
+
+    def set_severity(self, x):
+        self._severity = x
+
+    def syslog_convert(self):
+        s = json.dumps(self._sendlog)
+        return s
+
+    def send_syslog(self):
+        syspri = syslog.LOG_INFO
+        for i in self._sevmap:
+            if i == self._severity:
+                syspri = self._sevmap[i][1]
+        syslog.syslog(self.syslog_convert())
 
     def construct(self):
         self._sendlog = {}
@@ -166,6 +195,10 @@ class MozDefEvent(MozDefMessage):
         self._sendlog['details'] = self.details
         self._sendlog['summary'] = self.summary
         self._sendlog['tags'] = self.tags
+
+        for i in self._sevmap:
+            if i == self._severity:
+                self._sendlog['severity'] = self._sevmap[i][0]
 
     def __init__(self, url):
         MozDefMessage.__init__(self, url)
@@ -181,6 +214,11 @@ class MozDefEvent(MozDefMessage):
         self.details = {}
 
 class MozDefTests(unittest.TestCase):
+    def create_valid_event(self):
+        self.emsg_summary = 'a test event'
+        self.emsg_tags = ['generic', 'test']
+        self.emsg_details = {'one': 1, 'two': 'two'}
+
     def create_valid_vuln(self):
         self.vulnmsg = {}
         self.vulnmsg['description'] = 'system vulnerability management automation'
@@ -233,6 +271,7 @@ class MozDefTests(unittest.TestCase):
     def setUp(self):
         self.create_valid_vuln()
         self.create_valid_comp()
+        self.create_valid_event()
 
     def testFailMessageSend(self):
         m = MozDefMessage('http://127.0.0.1')
@@ -279,6 +318,31 @@ class MozDefTests(unittest.TestCase):
         m.log = self.compmsg
         m.construct()
         self.assertTrue(m.validate_log())
+
+    def testMozdefEventSyslog(self):
+        m = MozDefEvent('http://127.0.0.1')
+        m.summary = self.emsg_summary
+        m.tags = self.emsg_tags
+        m.details = self.emsg_details
+        m.set_severity(MozDefEvent.SEVERITY_CRITICAL)
+        m.construct()
+        s = m.syslog_convert()
+        self.assertIsNotNone(s)
+        m.set_send_to_syslog(True, only_syslog=True)
+        m.send()
+
+    def testMozdefCompSyslog(self):
+        m = MozDefCompliance('http://127.0.0.1')
+        m.log = self.compmsg
+        with self.assertRaises(MozDefError):
+            m.syslog_convert()
+
+    def testMozdefCompSyslogSend(self):
+        m = MozDefCompliance('http://127.0.0.1')
+        m.log = self.compmsg
+        m.set_send_to_syslog(True, only_syslog=True)
+        with self.assertRaises(MozDefError):
+            m.send()
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
