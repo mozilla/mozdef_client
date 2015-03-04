@@ -3,20 +3,25 @@ mozdef_client
 
 Python client lib for `MozDef clients <https://github.com/jeffbryner/MozDef/>`_.
 
-Used to send events to MozDef ("log to MozDef") for example.
-This lib superseeds mozdef_lib, mainly due to the more confusing name of mozdef_lib.
+This library is used to send events to MozDef. Currently standard events,
+vulnerability events, and compliance events are supported by the library.
+
+This library superseeds mozdef_lib; it was renamed in favor of a less
+confusing name.
 
 Install
 --------
-As a python module
+As A Python Module
 ~~~~~~~~~~~~~~~~~~
 
 Manually:
+
 .. code::
 
     make install
 
 As a rpm/deb package
+
 .. code::
 
    make rpm
