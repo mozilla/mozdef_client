@@ -11,7 +11,7 @@ confusing name.
 
 Install
 --------
-As A Python Module
+As a Python Module
 ~~~~~~~~~~~~~~~~~~
 
 Manually:
@@ -20,7 +20,7 @@ Manually:
 
     make install
 
-As a rpm/deb package
+As an rpm/deb package
 
 .. code::
 
@@ -29,8 +29,9 @@ As a rpm/deb package
    rpm -i <package.rpm>
    dpkg -i <package.deb>
 
-From the code/integrate in my code
+From the Code/Integrate in my Code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Add to your project with:
 
 .. code::
@@ -47,88 +48,40 @@ Python dependencies
 Usage
 -----
 
+An example for submitting generic MozDef events:
+
 .. code::
+
    # The simple way
    import mozdef_client
-   msg = mozdef_client.MozDefMsg('https://127.0.0.1:8443/events', tags=['openvpn', 'duosecurity'])
-   msg.send('User logged in', details={'username': user})
+   msg = mozdef_client.MozDefEvent('https://127.0.0.1:8443/events')
+   msg.summary = 'a test message'
+   msg.tags = ['tag1', 'tag2']
+   msg.details = {'hostname': 'test', 'alert': True}
+   msg.send()
 
-   # Some more possibilities
-   another_msg = mozdef_client.MozDefMsg('https://127.0.0.1:8443/events', tags=['bro'])
-   another_msg.send('knock knock')
-   another_msg.log['some-internal-attribute'] = 'smth'
-   another_msg.send('who\'s there?')
+   # If you want to send to syslog
+   another_msg.set_send_to_syslog(True)
+   another_msg.send()
 
-   # if you also want to send to syslog - this will flatten out the msg for syslog usage:
-   another_msg.sendToSyslog = True
-   another_msg.send("hi")
-   # if you do NOT want to send to MozDef (only makes complete sense if you send to syslog as per above option):
-   another_msg.syslogOnly = True
-   another_msg.send('This only goes to syslog, or nowhere if sendToSyslog is not True')
-   # etc.
+   # If you only want to send to syslog
+   another_msg.set_send_to_syslog(True, only_syslog=True)
+   another_msg.send()
 
 .. note::
 
-   If you can, it is recommended to fill-in details={}, category='' and severity='' even thus those are optional.
+   If you can, it is recommended to fill-in details={}, category='' and
+   severity='' values, but they are optional
 
 Syslog compatibility
 ~~~~~~~~~~~~~~~~~~~~
 
-Should you be needing Syslog compatibility (for example to stay compatible with non-MozDef setups without having to
-handle the conversion to syslog on your own) just set sendToSyslog to True for your message.
+If you need syslog capability, as described previously use the set_send_to_syslog()
+function to enable this.
 
-The message will be flattened out and fields that syslog already provide will be stripped. Additionally, an attempt will
-be made to map the severity field to syslog's priority field if possible (the field name has to match a syslog priority
+The message will be flattened out. Additionally, an attempt will be made to map the severity
+field to syslog's priority field if possible (the field name has to match a syslog priority
 field name).
-
-Example:
-
-.. code::
-
-    #JSON/MozDef output
-    {
-        "category": "event",
-        "details": {},
-        "hostname": "kang-vp",
-        "processid": 16347,
-        "processname": "mozdef_client.py",
-        "severity": "INFO",
-        "summary": "test msg",
-        "tags": [],
-        "timestamp": "2014-05-13T14:59:54.093572+00:00"
-    }
-    [...]
-
-    #Syslog output
-    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {} tags: [] category: event summary: test syslog msg
-    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {'uid': 0, 'username': 'kang'} tags: ['bro', 'auth'] category:
-    authentication summary: new test msg
-    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {} tags: [] category: event summary: another test msg
-
-
-MozDef Event message structure
--------------------------------
-These are also the 'internal attributes' which you can modify.
-
-.. code::
-
-    {
-        "category": "authentication",
-            "details": {
-                "uid": 0,
-                "username": "kang"
-            },
-            "hostname": "blah.private.scl3.mozilla.com",
-            "processid": 14619,
-            "processname": "./mozdef_client.py",
-            "severity": "CRITICAL",
-            "summary": "new test msg",
-            "tags": [
-                "bro",
-            "auth"
-                ],
-            "timestamp": "2014-03-18T23:20:31.013344+00:00"
-    }
 
 Certificate handling
 --------------------
@@ -146,4 +99,5 @@ That's how you do all this:
 
 .. note::
 
-   Disabling certificate checking introduce a security issue and is generally not recommended, specially for production.
+   Disabling certificate checking introduce a security issue and is generally not recommended, specifically for production.
+
