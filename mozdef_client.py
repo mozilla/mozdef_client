@@ -62,7 +62,7 @@ class MozDefMessage(object):
     def validate_log(self):
         return True
 
-    def set_fire_and_forget(f):
+    def set_fire_and_forget(self, f):
         self._fire_and_forget = f
 
     def construct(self):
@@ -136,6 +136,8 @@ class MozDefVulnerability(MozDefMessage):
         self._msgtype = self.MSGTYPE_VULNERABILITY
 
 class MozDefEvent(MozDefMessage):
+    # Flags associated with legacy syslog conversion which is currently not
+    # implemented
     SEVERITY_INFO = 0
     SEVERITY_WARNING = 1
     SEVERITY_CRITICAL = 2
@@ -172,7 +174,6 @@ class MozDefEvent(MozDefMessage):
         self._process_id = os.getpid()
         self._hostname = socket.getfqdn()
         self._severity = self.SEVERITY_INFO
-        self._timestamp = None
 
         self.summary = None
         self.tags = []
