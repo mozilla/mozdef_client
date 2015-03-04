@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 # Copyright (c) 2014 Mozilla Corporation
 # Author: gdestuynder@mozilla.com
+# Author: ameihm@mozilla.com
 
 import os
 import sys
@@ -47,6 +48,9 @@ class MozDefMessage(object):
         self._url = url
 
         # Set some default options
+        # XXX syslog options are currently unused, but were retained from
+        # previous version as this functionality may be added if required
+        # in the future.
         self._send_to_syslog = False
         self._syslog_only = False
         self._fire_and_forget = False
@@ -57,6 +61,9 @@ class MozDefMessage(object):
 
     def validate_log(self):
         return True
+
+    def set_fire_and_forget(f):
+        self._fire_and_forget = f
 
     def construct(self):
         raise MozDefError('subclass of MozDefMessage must override construct()')
@@ -82,12 +89,6 @@ class MozDefMessage(object):
         else:
             self._httpsession.post(self._url, buf,
                 verify=self._verify_certificate)
-
-    def httpsession_cb(self, session, response):
-        if response.result().status_code != 200:
-            if not self.fire_and_forget_mode:
-                raise MozDefError("HTTP POST failed with code %r" % \
-                    response.result().status_code)
 
 class MozDefCompliance(MozDefMessage):
     def validate_log(self):
