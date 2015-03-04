@@ -1,13 +1,18 @@
 mozdef_client
 =============
 
-Python client lib for `MozDef clients <https://github.com/jeffbryner/MozDef/>`_.
+Python client library for `MozDef clients <https://github.com/jeffbryner/MozDef/>`_.
 
-This library is used to send events to MozDef. Currently standard events,
-vulnerability events, and compliance events are supported by the library.
+This library is used to send events to MozDef. A number of event types are currently
+supported including:
+
+* Generic Events
+* Compliance Events
+* Vulnerability Events
 
 This library superseeds mozdef_lib; it was renamed in favor of a less
-confusing name.
+confusing name. Installation instructions and basic usage examples are
+included in below.
 
 Install
 --------
@@ -20,7 +25,7 @@ Manually:
 
     make install
 
-As an rpm/deb package
+As an rpm/deb package:
 
 .. code::
 
@@ -29,8 +34,8 @@ As an rpm/deb package
    rpm -i <package.rpm>
    dpkg -i <package.deb>
 
-From the Code/Integrate in my Code
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+As a Submodule
+~~~~~~~~~~~~~~
 
 Add to your project with:
 
@@ -39,7 +44,7 @@ Add to your project with:
    git submodule add https://github.com/gdestuynder/mozdef_client
    git commit -a
 
-Python dependencies
+Python Dependencies
 ~~~~~~~~~~~~~~~~~~~
 
 * requests_futures for python2 (optional but highly recommended, else messages are synchronous)
@@ -60,7 +65,7 @@ An example for submitting generic MozDef events:
    msg.details = {'hostname': 'test', 'alert': True}
    msg.send()
 
-   # If you want to send to syslog
+   # If you want to also send to syslog
    another_msg.set_send_to_syslog(True)
    another_msg.send()
 
@@ -68,12 +73,27 @@ An example for submitting generic MozDef events:
    another_msg.set_send_to_syslog(True, only_syslog=True)
    another_msg.send()
 
+Compliance and vulnerability events are submitted by setting the log
+attribute of the object to a dict representing the event. An example
+for compliance events:
+
+.. code::
+
+   import mozdef_client
+   msg = mozdef_client.MozDefCompliance('https://127.0.0.1:8443/compliance')
+   msg.log = compliance_msg
+   msg.send()
+
 .. note::
 
    If you can, it is recommended to fill-in details={}, category='' and
-   severity='' values, but they are optional
+   severity='' values, but they are optional.
 
-Syslog compatibility
+The library handles validation of the messages prior to submission where
+required. In cases where an error occurs, the library will raise a
+MozDefError exception.
+
+Syslog Compatibility
 ~~~~~~~~~~~~~~~~~~~~
 
 If you need syslog capability, as described previously use the set_send_to_syslog()
