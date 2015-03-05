@@ -52,12 +52,19 @@ class MozDefMessage(object):
         self._syslog_only = False
         self._fire_and_forget = False
         self._verify_certificate = False
+        self._verify_path = None
 
     def validate(self):
         return True
 
     def validate_log(self):
         return True
+
+    def set_verify(self, f):
+        self._verify_certificate = f
+
+    def set_verify_path(self, p):
+        self._verify_path = p
 
     def set_fire_and_forget(self, f):
         self._fire_and_forget = f
@@ -93,14 +100,19 @@ class MozDefMessage(object):
             if self._syslog_only:
                 return
 
+        vflag = self._verify_certificate
+        if vflag:
+            if self._verify_path != None:
+                vflag = self._verify_path
+
         buf = json.dumps(self._sendlog, sort_keys=True, indent=4)
         if futures_loaded:
             self._httpsession.post(self._url, buf,
-                verify=self._verify_certificate,
+                verify=vflag,
                 background_callback=self._httpsession_cb)
         else:
             self._httpsession.post(self._url, buf,
-                verify=self._verify_certificate)
+                verify=vflag)
 
 class MozDefCompliance(MozDefMessage):
     def validate_log(self):
