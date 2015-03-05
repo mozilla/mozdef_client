@@ -48,9 +48,6 @@ class MozDefMessage(object):
         self._url = url
 
         # Set some default options
-        # XXX syslog options are currently unused, but were retained from
-        # previous version as this functionality may be added if required
-        # in the future.
         self._send_to_syslog = False
         self._syslog_only = False
         self._fire_and_forget = False
