@@ -171,6 +171,9 @@ class MozDefEvent(MozDefMessage):
     def set_severity(self, x):
         self._severity = x
 
+    def set_category(self, x):
+        self._category = x
+
     def syslog_convert(self):
         s = json.dumps(self._sendlog)
         return s
@@ -219,7 +222,8 @@ class MozDefTests(unittest.TestCase):
 
     def create_valid_vuln(self):
         self.vulnmsg = {}
-        self.vulnmsg['description'] = 'system vulnerability management automation'
+        self.vulnmsg['description'] = 'system vulnerability management ' \
+            'automation'
         self.vulnmsg['utctimestamp'] = '2015-01-21T15:33:51.136378+00:00'
         self.vulnmsg['sourcename'] = 'development'
         self.vulnmsg['asset'] = {}
