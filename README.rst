@@ -1,31 +1,41 @@
 mozdef_client
 =============
 
-Python client library for `MozDef clients <https://github.com/jeffbryner/MozDef/>`_.
+mozdef_client is a Python library for sending event information from Python
+software to `MozDef`_.
 
-This library is used to send events to MozDef. A number of event types are currently
-supported including:
+.. _MozDef: https://github.com/jeffbryner/MozDef/
 
-* Generic Events
-* Compliance Events
-* Vulnerability Events
+This library performs functions such as message preformatting and validation,
+in addition to actually POSTing the events to MozDef using the provided event
+collection URL.
 
-This library superseeds mozdef_lib; it was renamed in favor of a less
-confusing name. Installation instructions and basic usage examples are
-included in below.
+The library supports submission of the following MozDef event types, with more
+to be added in the future.
 
-Install
---------
+- Generic Events
+- Compliance Events
+- Vulnerability Events
+
+This library was previously known as mozdef_lib, but was renamed for clarity.
+The previous version of the library can be found at `mozdef_lib`_.
+
+.. _mozdef_lib: https://github.com/gdestuynder/mozdef_lib/
+
+Installation
+------------
+
 As a Python Module
 ~~~~~~~~~~~~~~~~~~
 
-Manually:
+To install mozdef_client as a module using setup.py, the following
+can be used.
 
 .. code::
 
     make install
 
-As an rpm/deb package:
+Or, to create an RPM/debian package and install that package:
 
 .. code::
 
