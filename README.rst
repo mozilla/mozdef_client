@@ -57,17 +57,16 @@ Add to your project with:
 Python Dependencies
 ~~~~~~~~~~~~~~~~~~~
 
-* requests_futures for python2 (optional but highly recommended, else messages are synchronous)
-* pytz
+- requests_futures (Optional but recommended, otherwise events are synchronous)
+- pytz
 
 Usage
 -----
 
-An example for submitting generic MozDef events:
+The following is an example for submitting generic MozDef events.
 
 .. code::
 
-   # The simple way
    import mozdef_client
    msg = mozdef_client.MozDefEvent('https://127.0.0.1:8443/events')
    msg.summary = 'a test message'
@@ -75,17 +74,22 @@ An example for submitting generic MozDef events:
    msg.details = {'hostname': 'test', 'alert': True}
    msg.send()
 
-   # If you want to also send to syslog
-   another_msg.set_send_to_syslog(True)
-   another_msg.send()
+It is also possible to additionally send the message to syslog, in this case
+it will be flattened.
 
-   # If you only want to send to syslog
-   another_msg.set_send_to_syslog(True, only_syslog=True)
-   another_msg.send()
+.. code::
+
+   msg.set_send_to_syslog(True)
+   msg.send()
+
+   # Or optionally, if you only want to send to syslog.
+   msg.set_send_to_syslog(True, only_syslog=True)
+   msg.send()
 
 Compliance and vulnerability events are submitted by setting the log
-attribute of the object to a dict representing the event. An example
-for compliance events:
+attribute of the object to a dict representing the event. This dict is
+converted in it's entirety to the event. The following is an example for
+compliance events.
 
 .. code::
 
@@ -94,40 +98,48 @@ for compliance events:
    msg.log = compliance_msg
    msg.send()
 
-.. note::
+With generic event messages, the summary field is the only mandatory field
+that must be set on the event before submission. Compliance and vulnerability
+events have a specific format and require a number of default fields to exist
+before submission. The validation functions in the library will raise a
+MozDefError exception if an error condition occurs (such as submission of an
+invalid message).
 
-   If you can, it is recommended to fill-in details={}, category='' and
-   severity='' values, but they are optional.
+With a generic event message, the members of the object you will generally
+modify before calling send() include:
 
-The library handles validation of the messages prior to submission where
-required. In cases where an error occurs, the library will raise a
-MozDefError exception.
+* .details (dict)
+* .summary (string)
+* .tags (list)
 
-Syslog Compatibility
-~~~~~~~~~~~~~~~~~~~~
+Also, for event messages the set_severity() and set_category() methods can be
+used to change the message severity and category. The category argument is a
+string value, the severity can be one of the following.
 
-If you need syslog capability, as described previously use the set_send_to_syslog()
-function to enable this.
+* MozDefEvent.SEVERITY_INFO
+* MozDefEvent.SEVERITY_WARNING
+* MozDefEvent.SEVERITY_CRITICAL
+* MozDefEvent.SEVERITY_ERROR
+* MozDefEvent.SEVERITY_DEBUG
 
-The message will be flattened out. Additionally, an attempt will be made to map the severity
-field to syslog's priority field if possible (the field name has to match a syslog priority
-field name).
+With compliance and vulnerability events, you will generally operate on the
+.log member of the object, which is a dict.
 
-Certificate handling
+Notes on Syslog Compatability
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When using the syslog compatability mode, the JSON message is flattened into
+a single line. The severity associated with the message will also be converted
+into a syslog severity when the message is sent to syslog.
+
+Certificate Handling
 --------------------
 
-During testing with self-signed certificates, it may be useful to disable certificate checking while connecting to MozDef.
-It may also just be that you have a custom CA file that you want to point to.
+During testing with self-signed certificates, it may be useful to not validate
+certificates. Certificate validation should be enabled in production; this can
+be done by calling the set_verify() method on the event with a boolean argument.
 
-That's how you do all this:
-
-.. code::
-
-    msg.verify_certificate = False # not recommended, security issue.
-    msg.verify_certificate = True # uses default certs from /etc/ssl/certs
-    msg.verify_certificate = '/etc/path/to/custom/cert'
-
-.. note::
-
-   Disabling certificate checking introduce a security issue and is generally not recommended, specifically for production.
+Certificates are validated using the default certificate path on the system. If
+you want to specify a certificate to use, pass it with the set_verify_path()
+method on the event object before calling send().
 
