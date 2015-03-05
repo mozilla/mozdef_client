@@ -149,8 +149,6 @@ class MozDefVulnerability(MozDefMessage):
         self._msgtype = self.MSGTYPE_VULNERABILITY
 
 class MozDefEvent(MozDefMessage):
-    # Flags associated with legacy syslog conversion which is currently not
-    # implemented
     SEVERITY_INFO = 0
     SEVERITY_WARNING = 1
     SEVERITY_CRITICAL = 2
