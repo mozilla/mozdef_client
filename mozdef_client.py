@@ -186,6 +186,9 @@ class MozDefEvent(MozDefMessage):
         self._sendlog = {}
         self._sendlog['timestamp'] = \
             pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
+        self._sendlog['processid'] = self._process_id
+        self._sendlog['processname'] = self._process_name
+        self._sendlog['hostname'] = self._hostname
         self._sendlog['category'] = self._category
         self._sendlog['details'] = self.details
         self._sendlog['summary'] = self.summary
