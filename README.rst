@@ -1,22 +1,42 @@
 mozdef_client
 =============
 
-Python client lib for `MozDef clients <https://github.com/jeffbryner/MozDef/>`_.
+mozdef_client is a Python library for sending event information from Python
+software to `MozDef`_.
 
-Used to send events to MozDef ("log to MozDef") for example.
-This lib superseeds mozdef_lib, mainly due to the more confusing name of mozdef_lib.
+.. _MozDef: https://github.com/jeffbryner/MozDef/
 
-Install
---------
-As a python module
+This library performs functions such as message preformatting and validation,
+in addition to actually POSTing the events to MozDef using the provided event
+collection URL.
+
+The library supports submission of the following MozDef event types, with more
+to be added in the future.
+
+- Generic Events
+- Compliance Events
+- Vulnerability Events
+
+This library was previously known as mozdef_lib, but was renamed for clarity.
+The previous version of the library can be found at `mozdef_lib`_.
+
+.. _mozdef_lib: https://github.com/gdestuynder/mozdef_lib/
+
+Installation
+------------
+
+As a Python Module
 ~~~~~~~~~~~~~~~~~~
 
-Manually:
+To install mozdef_client as a module using setup.py, the following
+can be used.
+
 .. code::
 
     make install
 
-As a rpm/deb package
+Or, to create an RPM/debian package and install that package:
+
 .. code::
 
    make rpm
@@ -24,8 +44,9 @@ As a rpm/deb package
    rpm -i <package.rpm>
    dpkg -i <package.deb>
 
-From the code/integrate in my code
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+As a Submodule
+~~~~~~~~~~~~~~
+
 Add to your project with:
 
 .. code::
@@ -33,112 +54,107 @@ Add to your project with:
    git submodule add https://github.com/gdestuynder/mozdef_client
    git commit -a
 
-Python dependencies
+Python Dependencies
 ~~~~~~~~~~~~~~~~~~~
 
-* requests_futures for python2 (optional but highly recommended, else messages are synchronous)
-* pytz
+- requests_futures (Optional but recommended, otherwise events are synchronous)
+- pytz
 
 Usage
 -----
 
+The following is an example for submitting generic MozDef events.
+
 .. code::
-   # The simple way
+
    import mozdef_client
-   msg = mozdef_client.MozDefMsg('https://127.0.0.1:8443/events', tags=['openvpn', 'duosecurity'])
-   msg.send('User logged in', details={'username': user})
+   msg = mozdef_client.MozDefEvent('https://127.0.0.1:8443/events')
+   msg.summary = 'a test message'
+   msg.tags = ['tag1', 'tag2']
+   msg.details = {'hostname': 'test', 'alert': True}
+   msg.send()
 
-   # Some more possibilities
-   another_msg = mozdef_client.MozDefMsg('https://127.0.0.1:8443/events', tags=['bro'])
-   another_msg.send('knock knock')
-   another_msg.log['some-internal-attribute'] = 'smth'
-   another_msg.send('who\'s there?')
-
-   # if you also want to send to syslog - this will flatten out the msg for syslog usage:
-   another_msg.sendToSyslog = True
-   another_msg.send("hi")
-   # if you do NOT want to send to MozDef (only makes complete sense if you send to syslog as per above option):
-   another_msg.syslogOnly = True
-   another_msg.send('This only goes to syslog, or nowhere if sendToSyslog is not True')
-   # etc.
-
-.. note::
-
-   If you can, it is recommended to fill-in details={}, category='' and severity='' even thus those are optional.
-
-Syslog compatibility
-~~~~~~~~~~~~~~~~~~~~
-
-Should you be needing Syslog compatibility (for example to stay compatible with non-MozDef setups without having to
-handle the conversion to syslog on your own) just set sendToSyslog to True for your message.
-
-The message will be flattened out and fields that syslog already provide will be stripped. Additionally, an attempt will
-be made to map the severity field to syslog's priority field if possible (the field name has to match a syslog priority
-field name).
-
-Example:
+It is also possible to additionally send the message to syslog, in this case
+it will be flattened.
 
 .. code::
 
-    #JSON/MozDef output
-    {
-        "category": "event",
-        "details": {},
-        "hostname": "kang-vp",
-        "processid": 16347,
-        "processname": "mozdef_client.py",
-        "severity": "INFO",
-        "summary": "test msg",
-        "tags": [],
-        "timestamp": "2014-05-13T14:59:54.093572+00:00"
-    }
-    [...]
+   msg.set_send_to_syslog(True)
+   msg.send()
 
-    #Syslog output
-    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {} tags: [] category: event summary: test syslog msg
-    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {'uid': 0, 'username': 'kang'} tags: ['bro', 'auth'] category:
-    authentication summary: new test msg
-    May 13 14:59:54 kang-vp mozdef_client.py[16347]: details: {} tags: [] category: event summary: another test msg
+   # Or optionally, if you only want to send to syslog.
+   msg.set_send_to_syslog(True, only_syslog=True)
+   msg.send()
 
-
-MozDef Event message structure
--------------------------------
-These are also the 'internal attributes' which you can modify.
+Compliance and vulnerability events are submitted by setting the log
+attribute of the object to a dict representing the event. This dict is
+converted in it's entirety to the event. The following is an example for
+compliance events.
 
 .. code::
 
-    {
-        "category": "authentication",
-            "details": {
-                "uid": 0,
-                "username": "kang"
-            },
-            "hostname": "blah.private.scl3.mozilla.com",
-            "processid": 14619,
-            "processname": "./mozdef_client.py",
-            "severity": "CRITICAL",
-            "summary": "new test msg",
-            "tags": [
-                "bro",
-            "auth"
-                ],
-            "timestamp": "2014-03-18T23:20:31.013344+00:00"
-    }
+   import mozdef_client
+   msg = mozdef_client.MozDefCompliance('https://127.0.0.1:8443/compliance')
+   msg.log = compliance_msg
+   msg.send()
 
-Certificate handling
+With generic event messages, the summary field is the only mandatory field
+that must be set on the event before submission. Compliance and vulnerability
+events have a specific format and require a number of default fields to exist
+before submission. The validation functions in the library will raise a
+MozDefError exception if an error condition occurs (such as submission of an
+invalid message).
+
+With a generic event message, the members of the object you will generally
+modify before calling send() include:
+
+* .details (dict)
+* .summary (string)
+* .tags (list)
+
+Also, for event messages the set_severity() and set_category() methods can be
+used to change the message severity and category. The category argument is a
+string value, the severity can be one of the following.
+
+* MozDefEvent.SEVERITY_INFO
+* MozDefEvent.SEVERITY_WARNING
+* MozDefEvent.SEVERITY_CRITICAL
+* MozDefEvent.SEVERITY_ERROR
+* MozDefEvent.SEVERITY_DEBUG
+
+With compliance and vulnerability events, you will generally operate on the
+.log member of the object, which is a dict.
+
+Notes on Syslog Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When using the syslog compatibility mode, the JSON message is flattened into
+a single line. The severity associated with the message will also be converted
+into a syslog severity when the message is sent to syslog.
+
+.. code::
+
+   import mozdef_client
+   msg = mozdef_client.MozDefEvent('https://127.0.0.1:8443/events')
+   msg.summary = 'a test event'
+   msg.tags = ['generic', 'test']
+   msg.details = {'one': 1, 'two': 'two'}
+   msg.set_severity(MozDefEvent.SEVERITY_CRIT)
+   msg.set_send_to_syslog(True, only_syslog=True)
+   msg.send()
+
+::
+
+   Mar  6 09:05:48 hostname mozdef_client.py: {"category": "event", "processid": 8095, "severity": "CRIT", "tags": ["generic", "test"], "timestamp": "2015-03-06T15:05:48.226939+00:00", "hostname": "hostname", "summary": "a test event", "processname": "mozdef_client.py", "details": {"two": "two", "one": 1}}
+
+Certificate Handling
 --------------------
 
-During testing with self-signed certificates, it may be useful to disable certificate checking while connecting to MozDef.
-It may also just be that you have a custom CA file that you want to point to.
+During testing with self-signed certificates, it may be useful to not validate
+certificates. Certificate validation should be enabled in production; this can
+be done by calling the set_verify() method on the event with a boolean argument.
 
-That's how you do all this:
+Certificates are validated using the default certificate path on the system. If
+you want to specify a certificate to use, pass it with the set_verify_path()
+method on the event object before calling send().
 
-.. code::
-
-    msg.verify_certificate = False # not recommended, security issue.
-    msg.verify_certificate = True # uses default certs from /etc/ssl/certs
-    msg.verify_certificate = '/etc/path/to/custom/cert'
-
-.. note::
-
-   Disabling certificate checking introduce a security issue and is generally not recommended, specially for production.
