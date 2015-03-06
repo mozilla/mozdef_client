@@ -125,12 +125,27 @@ string value, the severity can be one of the following.
 With compliance and vulnerability events, you will generally operate on the
 .log member of the object, which is a dict.
 
-Notes on Syslog Compatability
+Notes on Syslog Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When using the syslog compatability mode, the JSON message is flattened into
+When using the syslog compatibility mode, the JSON message is flattened into
 a single line. The severity associated with the message will also be converted
 into a syslog severity when the message is sent to syslog.
+
+.. code::
+
+   import mozdef_client
+   msg = mozdef_client.MozDefEvent('https://127.0.0.1:8443/events')
+   msg.summary = 'a test event'
+   msg.tags = ['generic', 'test']
+   msg.details = {'one': 1, 'two': 'two'}
+   msg.set_severity(MozDefEvent.SEVERITY_CRIT)
+   msg.set_send_to_syslog(True, only_syslog=True)
+   msg.send()
+
+::
+
+   Mar  6 09:05:48 hostname mozdef_client.py: {"category": "event", "processid": 8095, "severity": "CRIT", "tags": ["generic", "test"], "timestamp": "2015-03-06T15:05:48.226939+00:00", "hostname": "hostname", "summary": "a test event", "processname": "mozdef_client.py", "details": {"two": "two", "one": 1}}
 
 Certificate Handling
 --------------------

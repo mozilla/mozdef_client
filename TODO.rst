@@ -10,3 +10,5 @@ TODO
   of a string (such as INFO, DEBUG, WARNING, CRITICAL, etc.)
 - Might want to add documentation how to add your own CA certificate for this
   program to use
+- It might be nice to move validation fields out of the functions to make
+  updates easier (maybe in a configuration structure)

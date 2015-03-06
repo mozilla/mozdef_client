@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name = "mozdef_client",
-	py_modules = ['mozdef_client'],
+        py_modules = ['mozdef_client'],
         version = "1.0.0",
         author = "Guillaume Destuynder",
         author_email = "gdestuynder@mozilla.com",
@@ -22,11 +22,11 @@ setup(
         keywords = "mozdef client library",
         url = "https://github.com/gdestuynder/mozdef_client",
         long_description = read('README.rst'),
-	requires = ['requests_futures', 'pytz'],
+        requires = ['requests_futures', 'pytz'],
         classifiers = [
             "Development Status :: 5 - Production/Stable",
             "Topic :: System :: Logging",
-	    "Topic :: Software Development :: Libraries :: Python Modules",
+            "Topic :: Software Development :: Libraries :: Python Modules",
             "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         ],
 )
