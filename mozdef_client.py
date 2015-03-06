@@ -114,6 +114,69 @@ class MozDefMessage(object):
             self._httpsession.post(self._url, buf,
                 verify=vflag)
 
+# Legacy Compatibility
+#
+# This class wraps the new MozDefEvent class to provide support for
+# older applications that use the legacy API.
+class MozDefMsg(object):
+    def __init__(self, hostname, summary=None, category='event',
+        severity='INFO', tags=[], details={}):
+        self.summary = summary
+        self.category = category
+        self.details = details
+        self.tags = tags
+        self.severity = severity
+        self.hostname = hostname
+
+        self.log = {}
+        self.log['details'] = {}
+        self.log['tags'] = []
+
+        self.fire_and_forget_mode = False
+        self.verify_certificate = True
+        self.sendToSyslog = False
+        self.syslogOnly = False
+
+    def send(self, summary=None, category=None, severity=None, tags=None,
+        details=None):
+        tsummary = summary
+        tcategory = category
+        tseverity = severity
+        ttags = tags
+        tdetails = details
+
+        if tsummary == None:
+            tsummary = self.summary
+        if tcategory == None:
+            tcategory = self.category
+        if tseverity == None:
+            tseverity = self.severity
+        if ttags == None:
+            ttags = self.tags
+        if tdetails == None:
+            tdetails = self.details
+
+        amsg = MozDefEvent(self.hostname)
+        amsg.set_legacy_update_log(self.log)
+        amsg.summary = tsummary
+        amsg.tags = ttags
+        amsg.details = tdetails
+
+        if type(self.verify_certificate) is str:
+            amsg.set_verify(True)
+            amsg.set_verify_path(self.verify_certificate)
+        else:
+            amsg.set_verify(self.verify_certificate)
+
+        amsg.set_fire_and_forget(self.fire_and_forget_mode)
+
+        amsg.set_category(tcategory)
+        amsg.set_severity_from_string(tseverity)
+        amsg.set_send_to_syslog(self.sendToSyslog,
+            only_syslog=self.syslogOnly)
+
+        amsg.send()
+
 class MozDefCompliance(MozDefMessage):
     def validate_log(self):
         for k in ['target', 'policy', 'check', 'compliance', 'link',
@@ -180,11 +243,20 @@ class MozDefEvent(MozDefMessage):
             return False
         return True
 
+    def set_legacy_update_log(self, l):
+        self._updatelog = l
+
     def set_severity(self, x):
         self._severity = x
 
     def set_category(self, x):
         self._category = x
+
+    def set_severity_from_string(self, x):
+        self._severity = self.SEVERITY_INFO
+        for i in self._sevmap:
+            if self._sevmap[i][0] == x:
+                self._severity = i
 
     def syslog_convert(self):
         s = json.dumps(self._sendlog)
@@ -199,6 +271,8 @@ class MozDefEvent(MozDefMessage):
 
     def construct(self):
         self._sendlog = {}
+        if self._updatelog != None:
+            self._sendlog = self._updatelog
         self._sendlog['timestamp'] = \
             pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
         self._sendlog['processid'] = self._process_id
@@ -221,6 +295,8 @@ class MozDefEvent(MozDefMessage):
         self._process_id = os.getpid()
         self._hostname = socket.getfqdn()
         self._severity = self.SEVERITY_INFO
+
+        self._updatelog = None
 
         self.summary = None
         self.tags = []
@@ -350,6 +426,27 @@ class MozDefTests(unittest.TestCase):
         m.log = self.compmsg
         with self.assertRaises(MozDefError):
             m.syslog_convert()
+
+    def testLegacyMsg(self):
+        m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
+        self.assertIsNotNone(m)
+
+    def testLegacySyslog(self):
+        m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
+        m.sendToSyslog = True
+        m.syslogOnly = True
+        m.fire_and_forget_mode = True
+        m.log['somefield'] = 'test'
+        with self.assertRaises(MozDefError):
+            m.send()
+        m.send('hi')
+
+    def testLegacySyslogDetails(self):
+        m = MozDefMsg('http://127.0.0.1')
+        m.sendToSyslog = True
+        m.syslogOnly = True
+        m.fire_and_forget_mode = True
+        m.send('hi', details={'username': 'user'}, tags=['y0'])
 
     def testMozdefCompSyslogSend(self):
         m = MozDefCompliance('http://127.0.0.1')
