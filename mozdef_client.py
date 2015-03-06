@@ -114,10 +114,11 @@ class MozDefMessage(object):
             self._httpsession.post(self._url, buf,
                 verify=vflag)
 
-# Legacy Compatibility
+# Simple Message Submission
 #
 # This class wraps the new MozDefEvent class to provide support for
-# older applications that use the legacy API.
+# older applications that use the legacy API, and provide simplified access
+# to generation of event messages.
 class MozDefMsg(object):
     def __init__(self, hostname, summary=None, category='event',
         severity='INFO', tags=[], details={}):
@@ -157,7 +158,7 @@ class MozDefMsg(object):
             tdetails = self.details
 
         amsg = MozDefEvent(self.hostname)
-        amsg.set_legacy_update_log(self.log)
+        amsg.set_simple_update_log(self.log)
         amsg.summary = tsummary
         amsg.tags = ttags
         amsg.details = tdetails
@@ -243,7 +244,7 @@ class MozDefEvent(MozDefMessage):
             return False
         return True
 
-    def set_legacy_update_log(self, l):
+    def set_simple_update_log(self, l):
         self._updatelog = l
 
     def set_severity(self, x):
@@ -427,11 +428,11 @@ class MozDefTests(unittest.TestCase):
         with self.assertRaises(MozDefError):
             m.syslog_convert()
 
-    def testLegacyMsg(self):
+    def testSimpleMsg(self):
         m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
         self.assertIsNotNone(m)
 
-    def testLegacySyslog(self):
+    def testSimpleSyslog(self):
         m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
         m.sendToSyslog = True
         m.syslogOnly = True
@@ -441,7 +442,7 @@ class MozDefTests(unittest.TestCase):
             m.send()
         m.send('hi')
 
-    def testLegacySyslogDetails(self):
+    def testSimpleSyslogDetails(self):
         m = MozDefMsg('http://127.0.0.1')
         m.sendToSyslog = True
         m.syslogOnly = True
