@@ -16,6 +16,7 @@ to be added in the future.
 - Generic Events
 - Compliance Events
 - Vulnerability Events
+- Asset Hint Events
 
 This library was previously known as mozdef_lib, but was renamed for clarity.
 The previous version of the library can be found at `mozdef_lib`_.
@@ -96,6 +97,17 @@ compliance events.
    import mozdef_client
    msg = mozdef_client.MozDefCompliance('https://127.0.0.1:8443/compliance')
    msg.log = compliance_msg
+   msg.send()
+
+Hint events operate like generic events, but set some default fields
+for you.
+
+.. code::
+
+   import mozdef_client
+   msg = mozdef_client.MozDefAssetHint('https://127.0.0.1:8443/events')
+   msg.summary = 'new host detected'
+   msg.details = {'hostname': 'test'}
    msg.send()
 
 With generic event messages, the summary field is the only mandatory field

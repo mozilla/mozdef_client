@@ -36,6 +36,7 @@ class MozDefMessage(object):
     MSGTYPE_EVENT = 1
     MSGTYPE_COMPLIANCE = 2
     MSGTYPE_VULNERABILITY = 3
+    MSGTYPE_ASSETHINT = 4
 
     def __init__(self, url):
         self._msgtype = self.MSGTYPE_NONE
@@ -303,6 +304,20 @@ class MozDefEvent(MozDefMessage):
         self.tags = []
         self.details = {}
 
+class MozDefAssetHint(MozDefEvent):
+    def validate(self):
+        if not MozDefEvent.validate(self):
+            return False
+        # A hint event should always have details
+        if len(self.details.keys()) == 0:
+            return False
+        return True
+
+    def __init__(self, url):
+        MozDefEvent.__init__(self, url)
+        self._msgtype = self.MSGTYPE_ASSETHINT
+        self._category = 'asset_hint'
+
 class MozDefTests(unittest.TestCase):
     def create_valid_event(self):
         self.emsg_summary = 'a test event'
@@ -427,6 +442,18 @@ class MozDefTests(unittest.TestCase):
         m.log = self.compmsg
         with self.assertRaises(MozDefError):
             m.syslog_convert()
+
+    def testAssetHintValidate(self):
+        m = MozDefAssetHint('http://127.0.0.1')
+        self.assertFalse(m.validate())
+        m.summary = 'an asset hint event'
+        self.assertFalse(m.validate())
+        m.details = {'hostname': 'test'}
+        self.assertTrue(m.validate())
+
+    def testAssetHint(self):
+        m = MozDefAssetHint('http://127.0.0.1')
+        self.assertIsNotNone(m)
 
     def testSimpleMsg(self):
         m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
