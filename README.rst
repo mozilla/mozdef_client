@@ -87,16 +87,20 @@ it will be flattened.
    msg.set_send_to_syslog(True, only_syslog=True)
    msg.send()
 
-Compliance and vulnerability events are submitted by setting the log
+Compliance events (MozDefCompliance()) are sent the same way as
+generic events. Typically details and tags will be set. Details must
+adhere to the compliance event format or validation will fail.
+
+Vulnerability events are submitted by setting the log
 attribute of the object to a dict representing the event. This dict is
 converted in it's entirety to the event. The following is an example for
-compliance events.
+vulnerability events.
 
 .. code::
 
    import mozdef_client
-   msg = mozdef_client.MozDefCompliance('https://127.0.0.1:8443/compliance')
-   msg.log = compliance_msg
+   msg = mozdef_client.MozDefVulnerability('https://127.0.0.1:8443/compliance')
+   msg.log = vuln_msg
    msg.send()
 
 Hint events operate like generic events, but set some default fields
