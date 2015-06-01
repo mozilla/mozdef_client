@@ -36,6 +36,7 @@ class MozDefMessage(object):
     MSGTYPE_EVENT = 1
     MSGTYPE_COMPLIANCE = 2
     MSGTYPE_VULNERABILITY = 3
+    MSGTYPE_ASSETHINT = 4
 
     def __init__(self, url):
         self._msgtype = self.MSGTYPE_NONE
@@ -178,30 +179,6 @@ class MozDefMsg(object):
 
         amsg.send()
 
-class MozDefCompliance(MozDefMessage):
-    def validate_log(self):
-        for k in ['target', 'policy', 'check', 'compliance', 'link',
-            'utctimestamp']:
-            if k not in self._sendlog.keys():
-                return False
-        for k in ['level', 'name', 'url']:
-            if k not in self._sendlog['policy'].keys():
-                return False
-        for k in ['description', 'location', 'name', 'test']:
-            if k not in self._sendlog['check'].keys():
-                return False
-        for k in ['type', 'value']:
-            if k not in self._sendlog['check']['test'].keys():
-                return False
-        return True
-
-    def construct(self):
-        self._sendlog = self.log
-
-    def __init__(self, url):
-        MozDefMessage.__init__(self, url)
-        self._msgtype = self.MSGTYPE_COMPLIANCE
-
 class MozDefVulnerability(MozDefMessage):
     def validate_log(self):
         for k in ['utctimestamp', 'description', 'vuln', 'asset',
@@ -303,6 +280,45 @@ class MozDefEvent(MozDefMessage):
         self.tags = []
         self.details = {}
 
+class MozDefAssetHint(MozDefEvent):
+    def validate(self):
+        if not MozDefEvent.validate(self):
+            return False
+        # A hint event should always have details
+        if len(self.details.keys()) == 0:
+            return False
+        return True
+
+    def __init__(self, url):
+        MozDefEvent.__init__(self, url)
+        self._msgtype = self.MSGTYPE_ASSETHINT
+        self._category = 'asset_hint'
+
+class MozDefCompliance(MozDefEvent):
+    def validate_log(self):
+        if 'details' not in self._sendlog:
+            return False
+        t = self._sendlog['details']
+        for k in ['target', 'policy', 'check', 'compliance', 'link',
+            'utctimestamp']:
+            if k not in t.keys():
+                return False
+        for k in ['level', 'name', 'url']:
+            if k not in t['policy'].keys():
+                return False
+        for k in ['description', 'location', 'name', 'test']:
+            if k not in t['check'].keys():
+                return False
+        for k in ['type', 'value']:
+            if k not in t['check']['test'].keys():
+                return False
+        return True
+
+    def __init__(self, url):
+        MozDefEvent.__init__(self, url)
+        self._msgtype = self.MSGTYPE_COMPLIANCE
+        self._category = 'complianceitems'
+
 class MozDefTests(unittest.TestCase):
     def create_valid_event(self):
         self.emsg_summary = 'a test event'
@@ -403,10 +419,12 @@ class MozDefTests(unittest.TestCase):
 
     def testMozdefComplianceValidate(self):
         m = MozDefCompliance('http://127.0.0.1')
+        self.assertFalse(m.validate())
+        m.summary = 'compliance item'
         self.assertTrue(m.validate())
         m.construct()
         self.assertFalse(m.validate_log())
-        m.log = self.compmsg
+        m.details = self.compmsg
         m.construct()
         self.assertTrue(m.validate_log())
 
@@ -425,8 +443,19 @@ class MozDefTests(unittest.TestCase):
     def testMozdefCompSyslog(self):
         m = MozDefCompliance('http://127.0.0.1')
         m.log = self.compmsg
-        with self.assertRaises(MozDefError):
-            m.syslog_convert()
+        self.assertIsNotNone(m.syslog_convert())
+
+    def testAssetHintValidate(self):
+        m = MozDefAssetHint('http://127.0.0.1')
+        self.assertFalse(m.validate())
+        m.summary = 'an asset hint event'
+        self.assertFalse(m.validate())
+        m.details = {'hostname': 'test'}
+        self.assertTrue(m.validate())
+
+    def testAssetHint(self):
+        m = MozDefAssetHint('http://127.0.0.1')
+        self.assertIsNotNone(m)
 
     def testSimpleMsg(self):
         m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
@@ -451,10 +480,10 @@ class MozDefTests(unittest.TestCase):
 
     def testMozdefCompSyslogSend(self):
         m = MozDefCompliance('http://127.0.0.1')
-        m.log = self.compmsg
+        m.summary = 'compliance item'
+        m.details = self.compmsg
         m.set_send_to_syslog(True, only_syslog=True)
-        with self.assertRaises(MozDefError):
-            m.send()
+        m.send()
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
