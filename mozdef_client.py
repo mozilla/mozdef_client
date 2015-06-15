@@ -484,8 +484,9 @@ class MozDefTests(unittest.TestCase):
         m = MozDefRRA('http://127.0.0.1')
         self.assertFalse(m.validate())
         m.summary = 'an RRA event'
-        self.assetFalse(m.validate())
-        m.detailts = {'metadata': {'service': 'test'}}
+        m.category = 'rra_data'
+        self.assertFalse(m.validate())
+        m.details = {'metadata': {'service': 'test'}}
         self.assertTrue(m.validate())
 
     def testRRA(self):
