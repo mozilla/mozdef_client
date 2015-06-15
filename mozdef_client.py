@@ -32,11 +32,12 @@ class MozDefError(Exception):
 
 class MozDefMessage(object):
     # Supported message types
-    MSGTYPE_NONE = 0
-    MSGTYPE_EVENT = 1
-    MSGTYPE_COMPLIANCE = 2
-    MSGTYPE_VULNERABILITY = 3
-    MSGTYPE_ASSETHINT = 4
+    MSGTYPE_NONE            = 0
+    MSGTYPE_EVENT           = 1
+    MSGTYPE_COMPLIANCE      = 2
+    MSGTYPE_VULNERABILITY   = 3
+    MSGTYPE_ASSETHINT       = 4
+    MSGTYPE_RRA             = 5
 
     def __init__(self, url):
         self._msgtype = self.MSGTYPE_NONE
@@ -280,6 +281,21 @@ class MozDefEvent(MozDefMessage):
         self.tags = []
         self.details = {}
 
+class MozDefRRA(MozDefEvent):
+    def validate(self):
+        if not MozDefEvent.validate(self):
+            return False
+        if self.category != 'rra_data':
+            return False
+        if len(self.details.keys()) == 0:
+            return False
+        return True
+
+    def __init__(self, url):
+        MozDefEvent.__init__(self, url)
+        self._msgtype = self.MSGTYPE_RRA
+        self._category = 'rra_data'
+
 class MozDefAssetHint(MozDefEvent):
     def validate(self):
         if not MozDefEvent.validate(self):
@@ -455,6 +471,18 @@ class MozDefTests(unittest.TestCase):
 
     def testAssetHint(self):
         m = MozDefAssetHint('http://127.0.0.1')
+        self.assertIsNotNone(m)
+
+    def testRRAValidate(self):
+        m = MozDefRRA('http://127.0.0.1')
+        self.assertFalse(m.validate())
+        m.summary = 'an RRA event'
+        self.assetFalse(m.validate())
+        m.detailts = {'metadata': {'service': 'test'}}
+        self.assertTrue(m.validate())
+
+    def testRRA(self):
+        m = MozDefRRA('http://127.0.0.1')
         self.assertIsNotNone(m)
 
     def testSimpleMsg(self):
