@@ -108,13 +108,20 @@ class MozDefMessage(object):
                 vflag = self._verify_path
 
         buf = json.dumps(self._sendlog, sort_keys=True, indent=4)
+# Compatibility notes:
+# When updating either path (futures_loaded or not loaded) please ensure both have the same functionality
+# future_loaded is used by Python 2, the non-loaded version if for Python 3
         if futures_loaded:
             self._httpsession.post(self._url, buf,
                 verify=vflag,
                 background_callback=self._httpsession_cb)
         else:
-            self._httpsession.post(self._url, buf,
+           response = self._httpsession.post(self._url, buf,
                 verify=vflag)
+           if response.ok == False:
+                if not self._fire_and_forget:
+                    raise MozDefError('POST failed with code %r msg %s' % \
+                        (response.status_code, response.text))
 
 # Simple Message Submission
 #
