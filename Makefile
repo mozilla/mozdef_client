@@ -16,6 +16,10 @@ rpm:
 deb:
 	fpm -s python -t deb ./setup.py
 
+tests: test
+test:
+	python ./mozdef_client.py
+
 clean:
 	rm -rf *pyc
 	rm -rf build
