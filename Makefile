@@ -20,6 +20,9 @@ tests: test
 test:
 	python ./mozdef_client.py
 
+pypi:
+	 python setup.py bdist sdist sdist check upload
+
 clean:
 	rm -rf *pyc
 	rm -rf build
