@@ -6,7 +6,7 @@
 # Author: gdestuynder@mozilla.com
 
 import os
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -14,7 +14,7 @@ def read(fname):
 setup(
     name = "mozdef_client",
         py_modules = ['mozdef_client'],
-        version = "1.0.1",
+        version = "1.0.4",
         author = "Guillaume Destuynder",
         author_email = "gdestuynder@mozilla.com",
         description = ("A client library to send messages/events using MozDef"),

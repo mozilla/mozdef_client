@@ -21,9 +21,10 @@ test:
 	python ./mozdef_client.py
 
 pypi:
-	 python setup.py bdist sdist sdist check upload
+	 python setup.py sdist check upload --sign
 
 clean:
 	rm -rf *pyc
 	rm -rf build
 	rm -rf __pycache__
+	rm -rf dist
