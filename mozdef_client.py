@@ -21,6 +21,11 @@ try:
 except ImportError:
     from requests import Session
     futures_loaded = False
+try:
+    import boto3
+    boto_loaded = True
+except ImportError:
+    boto_loaded = False
 import unittest
 
 class MozDefError(Exception):
@@ -51,6 +56,7 @@ class MozDefMessage(object):
 
         # Set some default options
         self._send_to_syslog = False
+        self._send_to_sqs = False
         self._syslog_only = False
         self._fire_and_forget = False
         self._verify_certificate = False
@@ -70,6 +76,15 @@ class MozDefMessage(object):
 
     def set_fire_and_forget(self, f):
         self._fire_and_forget = f
+
+    def set_sqs_queue_name(self, f):
+        self._sqs_queue_name = f
+
+    def set_sqs_region(self, f):
+        self._sqs_region = f
+
+    def set_send_to_sqs(self, f):
+        self._send_to_sqs = f
 
     def set_send_to_syslog(self, f, only_syslog=False):
         self._send_to_syslog = f
@@ -101,6 +116,10 @@ class MozDefMessage(object):
             self.send_syslog()
             if self._syslog_only:
                 return
+
+        if self._send_to_sqs:
+            self.send_sqs()
+            return
 
         vflag = self._verify_certificate
         if vflag:
@@ -145,6 +164,7 @@ class MozDefMsg(object):
         self.fire_and_forget_mode = False
         self.verify_certificate = True
         self.sendToSyslog = False
+        self.sendToSqs = False
         self.syslogOnly = False
 
     def send(self, summary=None, category=None, severity=None, tags=None,
@@ -184,6 +204,9 @@ class MozDefMsg(object):
         amsg.set_severity_from_string(tseverity)
         amsg.set_send_to_syslog(self.sendToSyslog,
             only_syslog=self.syslogOnly)
+        amsg.set_sqs_queue_name(self.sqsQueueName)
+        amsg.set_sqs_region(self.sqsRegion)
+        amsg.set_send_to_sqs(self.sendToSqs)
 
         amsg.send()
 
@@ -254,6 +277,15 @@ class MozDefEvent(MozDefMessage):
             if i == self._severity:
                 syspri = self._sevmap[i][1]
         syslog.syslog(self.syslog_convert())
+
+    def send_sqs(self):
+        if not boto_loaded:
+            raise ImportError("boto3 not loaded")
+
+        boto3.setup_default_session(region_name=self._sqs_region)
+        sqs = boto3.resource('sqs')
+        queue = sqs.get_queue_by_name(QueueName=self._sqs_queue_name)
+        response = queue.send_message(MessageBody=json.dumps(self._sendlog))
 
     def construct(self):
         self._sendlog = {}
@@ -495,6 +527,16 @@ class MozDefTests(unittest.TestCase):
 
     def testSimpleMsg(self):
         m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
+        self.assertIsNotNone(m)
+
+    def testSimpleSqs(self):
+        m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
+        if not boto_loaded:
+            raise ImportError("Boto3 is not loaded")
+        m.sendToSqs = True
+        m.sqsRegion = 'us-west-1'
+        m.sqsQueueName = 'test'
+        m.send('hi')
         self.assertIsNotNone(m)
 
     def testSimpleSyslog(self):
