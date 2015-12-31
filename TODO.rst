@@ -12,3 +12,5 @@ TODO
   program to use
 - It might be nice to move validation fields out of the functions to make
   updates easier (maybe in a configuration structure)
+- Refactor into a "v2" for proper multi-destinations support (https vs sqs vs syslog vs..)
+- RabbitMQ support

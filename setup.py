@@ -14,7 +14,7 @@ def read(fname):
 setup(
     name = "mozdef_client",
         py_modules = ['mozdef_client'],
-        version = "1.0.4",
+        version = "1.0.5",
         author = "Guillaume Destuynder",
         author_email = "gdestuynder@mozilla.com",
         description = ("A client library to send messages/events using MozDef"),
@@ -22,7 +22,7 @@ setup(
         keywords = "mozdef client library",
         url = "https://github.com/gdestuynder/mozdef_client",
         long_description = read('README.rst'),
-        requires = ['requests_futures', 'pytz'],
+        requires = ['requests_futures', 'pytz', 'boto3'],
         classifiers = [
             "Development Status :: 5 - Production/Stable",
             "Topic :: System :: Logging",

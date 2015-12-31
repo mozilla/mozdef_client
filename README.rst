@@ -60,6 +60,7 @@ Python Dependencies
 
 - requests_futures (Optional but recommended, otherwise events are synchronous)
 - pytz
+- boto3 (for AWS support)
 
 Usage
 -----
@@ -85,6 +86,16 @@ it will be flattened.
 
    # Or optionally, if you only want to send to syslog.
    msg.set_send_to_syslog(True, only_syslog=True)
+   msg.send()
+
+
+And here's how you send to an Sqs queue in AWS. Note that the URL is ignored for compatibility purposes.
+
+.. code::
+
+   msg.set_sqs_queue_name = 'my_queue'
+   msg.set_sqs_region = 'us-west-1'
+   # Note that unlike syslog this will NEVER send to MozDef HTTP (URL is ignored)
    msg.send()
 
 Compliance events (MozDefCompliance()) are sent the same way as
