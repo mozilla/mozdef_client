@@ -93,9 +93,9 @@ And here's how you send to an Sqs queue in AWS. Note that the URL is ignored for
 
 .. code::
 
-   msg.set_send_to_sqs = True
-   msg.set_sqs_queue_name = 'my_queue'
-   msg.set_sqs_region = 'us-west-1'
+   msg.set_send_to_sqs(True)
+   msg.set_sqs_queue_name('my_queue')
+   msg.set_sqs_region('us-west-1')
    # Note that unlike syslog this will NEVER send to MozDef HTTP (URL is ignored)
    msg.send()
 
