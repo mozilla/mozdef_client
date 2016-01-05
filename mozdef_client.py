@@ -80,6 +80,9 @@ class MozDefMessage(object):
     def set_sqs_queue_name(self, f):
         self._sqs_queue_name = f
 
+    def set_sqs_aws_account_id(self, f):
+        self._sqs_aws_account_id = f
+
     def set_sqs_region(self, f):
         self._sqs_region = f
 
@@ -165,6 +168,9 @@ class MozDefMsg(object):
         self.verify_certificate = True
         self.sendToSyslog = False
         self.sendToSqs = False
+        self.sqsQueueName = None
+        self.sqsAWSAccountId = None
+        self.sqsRegion = None
         self.syslogOnly = False
 
     def send(self, summary=None, category=None, severity=None, tags=None,
@@ -205,6 +211,7 @@ class MozDefMsg(object):
         amsg.set_send_to_syslog(self.sendToSyslog,
             only_syslog=self.syslogOnly)
         amsg.set_sqs_queue_name(self.sqsQueueName)
+        amsg.set_sqs_aws_account_id(self.sqsAWSAccountId)
         amsg.set_sqs_region(self.sqsRegion)
         amsg.set_send_to_sqs(self.sendToSqs)
 
@@ -284,7 +291,11 @@ class MozDefEvent(MozDefMessage):
 
         boto3.setup_default_session(region_name=self._sqs_region)
         sqs = boto3.resource('sqs')
-        queue = sqs.get_queue_by_name(QueueName=self._sqs_queue_name)
+        if (self._sqs_aws_account_id != None):
+            queue = sqs.get_queue_by_name(QueueName=self._sqs_queue_name,
+                    QueueOwnerAWSAccountId=self._sqs_aws_account_id)
+        else:
+            queue = sqs.get_queue_by_name(QueueName=self._sqs_queue_name)
         response = queue.send_message(MessageBody=json.dumps(self._sendlog))
 
     def construct(self):
@@ -536,6 +547,7 @@ class MozDefTests(unittest.TestCase):
         m.sendToSqs = True
         m.sqsRegion = 'us-west-1'
         m.sqsQueueName = 'test'
+        m.sqsAWSAccountId = 'test'
         m.send('hi')
         self.assertIsNotNone(m)
 
