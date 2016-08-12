@@ -22,7 +22,7 @@ setup(
         keywords = "mozdef client library",
         url = "https://github.com/gdestuynder/mozdef_client",
         long_description = read('README.rst'),
-        requires = ['requests_futures', 'pytz', 'boto3'],
+        install_requires = ['requests_futures', 'pytz', 'boto3'],
         classifiers = [
             "Development Status :: 5 - Production/Stable",
             "Topic :: System :: Logging",
