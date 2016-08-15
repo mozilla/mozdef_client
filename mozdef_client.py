@@ -254,6 +254,21 @@ class MozDefEvent(MozDefMessage):
         SEVERITY_DEBUG: ['DEBUG', syslog.LOG_DEBUG],
     }
 
+    def __init__(self, url):
+        MozDefMessage.__init__(self, url)
+        self._msgtype = self.MSGTYPE_EVENT
+        self._category = 'event'
+        self._process_name = sys.argv[0]
+        self._process_id = os.getpid()
+        self._hostname = socket.getfqdn()
+        self._severity = self.SEVERITY_INFO
+
+        self._updatelog = None
+
+        self.summary = None
+        self.tags = []
+        self.details = {}
+
     def validate(self):
         if self.summary == None or self.summary == '':
             return False
@@ -316,20 +331,6 @@ class MozDefEvent(MozDefMessage):
             if i == self._severity:
                 self._sendlog['severity'] = self._sevmap[i][0]
 
-    def __init__(self, url):
-        MozDefMessage.__init__(self, url)
-        self._msgtype = self.MSGTYPE_EVENT
-        self._category = 'event'
-        self._process_name = sys.argv[0]
-        self._process_id = os.getpid()
-        self._hostname = socket.getfqdn()
-        self._severity = self.SEVERITY_INFO
-
-        self._updatelog = None
-
-        self.summary = None
-        self.tags = []
-        self.details = {}
 
 class MozDefRRA(MozDefEvent):
     def validate(self):
