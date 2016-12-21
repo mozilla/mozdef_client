@@ -15,6 +15,10 @@ import pytz
 import json
 import socket
 import syslog
+
+# http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/limits-messages.html
+SQS_MAX_MESSAGE_SIZE = 256 * 1024
+
 try:
     from requests_futures.sessions import FuturesSession as Session
     futures_loaded = True
@@ -311,7 +315,18 @@ class MozDefEvent(MozDefMessage):
                     QueueOwnerAWSAccountId=self._sqs_aws_account_id)
         else:
             queue = sqs.get_queue_by_name(QueueName=self._sqs_queue_name)
-        response = queue.send_message(MessageBody=json.dumps(self._sendlog))
+        message_body = json.dumps(self._sendlog)
+        if len(message_body) > SQS_MAX_MESSAGE_SIZE:
+            raise MozDefError(
+                'message length of %s is over the SQS maximum allowed message '
+                'size of %s' % (len(message_body), SQS_MAX_MESSAGE_SIZE))
+        try:
+            response = queue.send_message(MessageBody=message_body)
+        except (botocore.exceptions.ClientError,
+                botocore.parsers.ResponseParserError) as e:
+            raise MozDefError(
+                'message failed to send to SQS due to %s' % e)
+        return response
 
     def construct(self):
         self._sendlog = {}
