@@ -1,7 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-# Copyright (c) 2014 Mozilla Corporation
+# Copyright (c) 2014-2017 Mozilla Corporation
 # Author: gdestuynder@mozilla.com
 
 all:
@@ -24,7 +24,7 @@ pypi:
 	 python setup.py sdist check upload --sign
 
 twine:
-	twine upload -s dist/mozdef_client-1.0.7.tar.gz
+	twine upload -s dist/mozdef_client-1.0.8.tar.gz
 
 clean:
 	rm -rf *pyc

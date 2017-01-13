@@ -2,7 +2,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-# Copyright (c) 2014 Mozilla Corporation
+# Copyright (c) 2014-2017 Mozilla Corporation
 # Author: gdestuynder@mozilla.com
 
 import os
@@ -14,7 +14,7 @@ def read(fname):
 setup(
     name = "mozdef_client",
         py_modules = ['mozdef_client'],
-        version = "1.0.7",
+        version = "1.0.8",
         author = "Guillaume Destuynder",
         author_email = "gdestuynder@mozilla.com",
         description = ("A client library to send messages/events using MozDef"),
