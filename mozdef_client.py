@@ -317,9 +317,11 @@ class MozDefEvent(MozDefMessage):
         self._sendlog = {}
         if self._updatelog != None:
             self._sendlog = self._updatelog
-        if self._sendlog['timestamp'] == None:
+        if self.timestamp == None:
             self._sendlog['timestamp'] = \
                 pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
+        else:
+            self._sendlog['timestamp'] = self.timestamp
         self._sendlog['processid'] = self._process_id
         self._sendlog['processname'] = self._process_name
         self._sendlog['hostname'] = self._hostname
