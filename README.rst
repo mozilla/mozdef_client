@@ -81,10 +81,20 @@ it will be flattened.
 
 .. code::
 
+   import mozdef_client
+   msg = mozdef_client.MozDefEvent('https://127.0.0.1:8443/events')
+   msg.summary = 'a test message'
+   msg.tags = ['tag1', 'tag2']
+   msg.details = {'hostname': 'test', 'alert': True}
    msg.set_send_to_syslog(True)
    msg.send()
 
    # Or optionally, if you only want to send to syslog.
+   import mozdef_client
+   msg = mozdef_client.MozDefEvent('https://127.0.0.1:8443/events')
+   msg.summary = 'a test message'
+   msg.tags = ['tag1', 'tag2']
+   msg.details = {'hostname': 'test', 'alert': True}
    msg.set_send_to_syslog(True, only_syslog=True)
    msg.send()
 
@@ -93,9 +103,15 @@ And here's how you send to an Sqs queue in AWS. Note that the URL is ignored for
 
 .. code::
 
+   import mozdef_client
+   msg = mozdef_client.MozDefEvent('https://127.0.0.1:8443/events')
+   msg.summary = 'a test message'
+   msg.tags = ['tag1', 'tag2']
+   msg.details = {'hostname': 'test', 'alert': True}
    msg.set_send_to_sqs(True)
    msg.set_sqs_queue_name('my_queue')
    msg.set_sqs_region('us-west-1')
+   msg.set_sqs_aws_account_id('012345678901') # Not required if the SQS queue is in the local AWS account
    # Note that unlike syslog this will NEVER send to MozDef HTTP (URL is ignored)
    msg.send()
 
