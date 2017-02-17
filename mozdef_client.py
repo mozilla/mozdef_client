@@ -262,6 +262,7 @@ class MozDefEvent(MozDefMessage):
         self._process_id = os.getpid()
         self._hostname = socket.getfqdn()
         self._severity = self.SEVERITY_INFO
+        self.timestamp = None
 
         self._updatelog = None
 
