@@ -14,7 +14,7 @@ def read(fname):
 setup(
     name = "mozdef_client",
         py_modules = ['mozdef_client'],
-        version = "1.0.9",
+        version = "1.0.10",
         author = "Guillaume Destuynder",
         author_email = "gdestuynder@mozilla.com",
         description = ("A client library to send messages/events using MozDef"),
