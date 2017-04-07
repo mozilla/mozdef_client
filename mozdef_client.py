@@ -9,7 +9,6 @@
 
 import os
 import sys
-import copy
 from datetime import datetime
 import pytz
 import json
@@ -155,14 +154,14 @@ class MozDefMessage(object):
 # older applications that use the legacy API, and provide simplified access
 # to generation of event messages.
 class MozDefMsg(object):
-    def __init__(self, hostname, summary=None, category='event',
+    def __init__(self, url, summary=None, category='event',
         severity='INFO', tags=[], details={}):
         self.summary = summary
         self.category = category
         self.details = details
         self.tags = tags
         self.severity = severity
-        self.hostname = hostname
+        self.url = url
 
         self.log = {}
         self.log['details'] = {}
@@ -196,7 +195,7 @@ class MozDefMsg(object):
         if tdetails == None:
             tdetails = self.details
 
-        amsg = MozDefEvent(self.hostname)
+        amsg = MozDefEvent(self.url)
         amsg.set_simple_update_log(self.log)
         amsg.summary = tsummary
         amsg.tags = ttags
@@ -266,6 +265,7 @@ class MozDefEvent(MozDefMessage):
         self._process_id = os.getpid()
         self._severity = self.SEVERITY_INFO
         self.timestamp = None
+        self.hostname = None
 
         self._updatelog = None
 
@@ -338,12 +338,12 @@ class MozDefEvent(MozDefMessage):
         else:
             self._sendlog['timestamp'] = self.timestamp
 
-        if self._hostname is None:
-            self._hostname = socket.getfqdn()
+        if self.hostname is None:
+            self.hostname = socket.getfqdn()
 
         self._sendlog['processid'] = self._process_id
         self._sendlog['processname'] = self._process_name
-        self._sendlog['hostname'] = self._hostname
+        self._sendlog['hostname'] = self.hostname
         self._sendlog['category'] = self._category
         self._sendlog['details'] = self.details
         self._sendlog['summary'] = self.summary
@@ -496,6 +496,11 @@ class MozDefTests(unittest.TestCase):
         m.construct()
         self.assertEqual(m._sendlog['category'], 'event')
         self.assertEqual(m._sendlog['summary'], 'test event')
+
+    def testMozdefEventHostname(self):
+        m = MozDefEvent('http://127.0.0.1')
+        m.hostname = 'samplehostname'
+        self.assertEqual(m.hostname, 'samplehostname')
 
     def testMozdefVulnValidate(self):
         m = MozDefVulnerability('http://127.0.0.1')
