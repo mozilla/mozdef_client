@@ -56,6 +56,7 @@ class MozDefMessage(object):
         self._httpsession = Session()
         self._httpsession.trust_env = False
         self._url = url
+        self.hostname = socket.getfqdn()
 
         # Set some default options
         self._send_to_syslog = False
@@ -154,14 +155,14 @@ class MozDefMessage(object):
 # older applications that use the legacy API, and provide simplified access
 # to generation of event messages.
 class MozDefMsg(object):
-    def __init__(self, url, summary=None, category='event',
+    def __init__(self, hostname, summary=None, category='event',
         severity='INFO', tags=[], details={}):
         self.summary = summary
         self.category = category
         self.details = details
         self.tags = tags
         self.severity = severity
-        self.url = url
+        self.hostname = hostname
 
         self.log = {}
         self.log['details'] = {}
@@ -195,7 +196,7 @@ class MozDefMsg(object):
         if tdetails == None:
             tdetails = self.details
 
-        amsg = MozDefEvent(self.url)
+        amsg = MozDefEvent(self.hostname)
         amsg.set_simple_update_log(self.log)
         amsg.summary = tsummary
         amsg.tags = ttags
@@ -265,7 +266,6 @@ class MozDefEvent(MozDefMessage):
         self._process_id = os.getpid()
         self._severity = self.SEVERITY_INFO
         self.timestamp = None
-        self.hostname = None
 
         self._updatelog = None
 
@@ -337,9 +337,6 @@ class MozDefEvent(MozDefMessage):
                 pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
         else:
             self._sendlog['timestamp'] = self.timestamp
-
-        if self.hostname is None:
-            self.hostname = socket.getfqdn()
 
         self._sendlog['processid'] = self._process_id
         self._sendlog['processname'] = self._process_name
@@ -479,10 +476,22 @@ class MozDefTests(unittest.TestCase):
         with self.assertRaises(Exception):
             m.send()
 
+    def testMozdefMessage(self):
+        m = MozDefMessage('http://127.0.0.1')
+        self.assertIsNotNone(m)
+        self.assertIsNotNone(m.hostname)
+        self.assertEqual(m._url, 'http://127.0.0.1')
+        m.hostname = 'examplehostname'
+        self.assertEqual(m.hostname, 'examplehostname')
+
     def testMozdefEvent(self):
         m = MozDefEvent('http://127.0.0.1')
         self.assertIsNotNone(m)
         self.assertEqual(m._msgtype, MozDefMessage.MSGTYPE_EVENT)
+        self.assertIsNotNone(m.hostname)
+        self.assertEqual(m._url, 'http://127.0.0.1')
+        m.hostname = 'examplehostname'
+        self.assertEqual(m.hostname, 'examplehostname')
 
     def testMozdefEventValidate(self):
         m = MozDefEvent('http://127.0.0.1')
