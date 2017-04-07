@@ -253,8 +253,8 @@ class MozDefEvent(MozDefMessage):
     _sevmap = {
         SEVERITY_INFO: ['INFO', syslog.LOG_INFO],
         SEVERITY_WARNING: ['WARNING', syslog.LOG_WARNING],
-        SEVERITY_CRITICAL: ['CRIT', syslog.LOG_CRIT],
-        SEVERITY_ERROR: ['ERR', syslog.LOG_ERR],
+        SEVERITY_CRITICAL: ['CRITICAL', syslog.LOG_CRIT],
+        SEVERITY_ERROR: ['ERROR', syslog.LOG_ERR],
         SEVERITY_DEBUG: ['DEBUG', syslog.LOG_DEBUG],
     }
 
@@ -264,7 +264,6 @@ class MozDefEvent(MozDefMessage):
         self._category = 'event'
         self._process_name = sys.argv[0]
         self._process_id = os.getpid()
-        self._hostname = socket.getfqdn()
         self._severity = self.SEVERITY_INFO
         self.timestamp = None
 
@@ -338,6 +337,10 @@ class MozDefEvent(MozDefMessage):
                 pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
         else:
             self._sendlog['timestamp'] = self.timestamp
+
+        if self._hostname is None:
+            self._hostname = socket.getfqdn()
+
         self._sendlog['processid'] = self._process_id
         self._sendlog['processname'] = self._process_name
         self._sendlog['hostname'] = self._hostname
