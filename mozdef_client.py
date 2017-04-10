@@ -57,6 +57,12 @@ class MozDefMessage(object):
         self._httpsession.trust_env = False
         self._url = url
         self.hostname = socket.getfqdn()
+        # This is due to some systems incorrectly
+        # setting the hostname field to localhost.localdomain
+        # so, we add logic to use a different 'hostname' method
+        # if that's the case
+        if self.hostname == 'localhost.localdomain':
+            self.hostname = socket.gethostname()
 
         # Set some default options
         self._send_to_syslog = False
