@@ -24,7 +24,7 @@ pypi:
 	 python setup.py sdist check upload --sign
 
 twine:
-	twine upload -s dist/mozdef_client-1.0.10.tar.gz
+	twine upload -s dist/mozdef_client-1.0.11.tar.gz
 
 clean:
 	rm -rf *pyc
