@@ -9,7 +9,6 @@
 
 import os
 import sys
-import copy
 from datetime import datetime
 import pytz
 import json
@@ -57,6 +56,13 @@ class MozDefMessage(object):
         self._httpsession = Session()
         self._httpsession.trust_env = False
         self._url = url
+        self.hostname = socket.getfqdn()
+        # This is due to some systems incorrectly
+        # setting the hostname field to localhost.localdomain
+        # so, we add logic to use a different 'hostname' method
+        # if that's the case
+        if self.hostname == 'localhost.localdomain':
+            self.hostname = socket.gethostname()
 
         # Set some default options
         self._send_to_syslog = False
@@ -253,8 +259,8 @@ class MozDefEvent(MozDefMessage):
     _sevmap = {
         SEVERITY_INFO: ['INFO', syslog.LOG_INFO],
         SEVERITY_WARNING: ['WARNING', syslog.LOG_WARNING],
-        SEVERITY_CRITICAL: ['CRIT', syslog.LOG_CRIT],
-        SEVERITY_ERROR: ['ERR', syslog.LOG_ERR],
+        SEVERITY_CRITICAL: ['CRITICAL', syslog.LOG_CRIT],
+        SEVERITY_ERROR: ['ERROR', syslog.LOG_ERR],
         SEVERITY_DEBUG: ['DEBUG', syslog.LOG_DEBUG],
     }
 
@@ -264,7 +270,6 @@ class MozDefEvent(MozDefMessage):
         self._category = 'event'
         self._process_name = sys.argv[0]
         self._process_id = os.getpid()
-        self._hostname = socket.getfqdn()
         self._severity = self.SEVERITY_INFO
         self.timestamp = None
 
@@ -338,9 +343,10 @@ class MozDefEvent(MozDefMessage):
                 pytz.timezone('UTC').localize(datetime.utcnow()).isoformat()
         else:
             self._sendlog['timestamp'] = self.timestamp
+
         self._sendlog['processid'] = self._process_id
         self._sendlog['processname'] = self._process_name
-        self._sendlog['hostname'] = self._hostname
+        self._sendlog['hostname'] = self.hostname
         self._sendlog['category'] = self._category
         self._sendlog['details'] = self.details
         self._sendlog['summary'] = self.summary
@@ -476,10 +482,22 @@ class MozDefTests(unittest.TestCase):
         with self.assertRaises(Exception):
             m.send()
 
+    def testMozdefMessage(self):
+        m = MozDefMessage('http://127.0.0.1')
+        self.assertIsNotNone(m)
+        self.assertIsNotNone(m.hostname)
+        self.assertEqual(m._url, 'http://127.0.0.1')
+        m.hostname = 'examplehostname'
+        self.assertEqual(m.hostname, 'examplehostname')
+
     def testMozdefEvent(self):
         m = MozDefEvent('http://127.0.0.1')
         self.assertIsNotNone(m)
         self.assertEqual(m._msgtype, MozDefMessage.MSGTYPE_EVENT)
+        self.assertIsNotNone(m.hostname)
+        self.assertEqual(m._url, 'http://127.0.0.1')
+        m.hostname = 'examplehostname'
+        self.assertEqual(m.hostname, 'examplehostname')
 
     def testMozdefEventValidate(self):
         m = MozDefEvent('http://127.0.0.1')
@@ -493,6 +511,11 @@ class MozDefTests(unittest.TestCase):
         m.construct()
         self.assertEqual(m._sendlog['category'], 'event')
         self.assertEqual(m._sendlog['summary'], 'test event')
+
+    def testMozdefEventHostname(self):
+        m = MozDefEvent('http://127.0.0.1')
+        m.hostname = 'samplehostname'
+        self.assertEqual(m.hostname, 'samplehostname')
 
     def testMozdefVulnValidate(self):
         m = MozDefVulnerability('http://127.0.0.1')
