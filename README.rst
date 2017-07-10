@@ -52,7 +52,7 @@ Add to your project with:
 
 .. code::
 
-   git submodule add https://github.com/gdestuynder/mozdef_client
+   git submodule add https://github.com/mozilla/mozdef_client
    git commit -a
 
 Python Dependencies
