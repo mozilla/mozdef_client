@@ -11,7 +11,7 @@ install:
 	./setup.py install
 
 rpm:
-	fpm -s python -t rpm -d pytz -d python-requests-futures ./setup.py
+	fpm -s python -t rpm -d pytz -d python-requests-futures --replaces python-mozdef ./setup.py
 
 deb:
 	fpm -s python -t deb ./setup.py
