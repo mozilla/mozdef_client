@@ -18,7 +18,7 @@ deb:
 
 tests: test
 test:
-	python ./mozdef_client.py
+	python ./test_mozdef_client.py
 
 pypi:
 	 python setup.py sdist check upload --sign
