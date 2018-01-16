@@ -47,6 +47,15 @@ class MozDefMessage(object):
     MSGTYPE_RRA             = 5
 
     def __init__(self, url):
+        """This class is the new base class for MozDef messages. All other
+        classes besides MozDefMsg derive from this class or from classes
+        derived from this class (like MozDevEvent). This class shouldn't be
+        used directly and the derived classes should be used instead.
+
+        Note the very similar name between this class and the MozDefMsg
+        class but the differing purposes between the two classes (see the
+        MozDefMsg docstring)
+        """
         self._msgtype = self.MSGTYPE_NONE
 
         self.log = {}
@@ -154,14 +163,25 @@ class MozDefMessage(object):
                     raise MozDefError('POST failed with code %r msg %s' % \
                         (response.status_code, response.text))
 
-# Simple Message Submission
-#
-# This class wraps the new MozDefEvent class to provide support for
-# older applications that use the legacy API, and provide simplified access
-# to generation of event messages.
 class MozDefMsg(object):
     def __init__(self, hostname, summary=None, category='event',
         severity='INFO', tags=[], details={}):
+        """This class is a compatibility layer for code which uses the older
+        MozDefMsg class interface. This class can be used to send messages
+        to MozDef and is an alternative to the new classes (like MozDefEvent)
+        which inherit MozDefMessage.
+
+        Under the hood, this class instantiates a MozDefEvent object to build
+        and send the message to MozDef. The MozDefEvent class is derived from
+        the MozDefMessage class
+
+        This class provides the simpler original interface but lacks message
+        validation like the newer classes for specific types of messages.
+
+        Note the very similar name between this class and the MozDefMessage
+        class but the differing purposes between the two classes (see the
+        MozDefMessage docstring)
+        """
         self.summary = summary
         self.category = category
         self.details = details
