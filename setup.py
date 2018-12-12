@@ -6,7 +6,36 @@
 # Author: gdestuynder@mozilla.com
 
 import os
+import subprocess
 from setuptools import setup
+
+VERSION = '1.0.11'
+
+
+def git_version():
+    """ Return the git revision as a string """
+    def _minimal_ext_cmd(cmd):
+        # construct minimal environment
+        env = {}
+        for envvar in ['SYSTEMROOT', 'PATH']:
+            val = os.environ.get(envvar)
+            if val is not None:
+                env[envvar] = val
+        # LANGUAGE is used on win32
+        env['LANGUAGE'] = 'C'
+        env['LANG'] = 'C'
+        env['LC_ALL'] = 'C'
+        out = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                               env=env).communicate()[0]
+        return out
+
+    try:
+        out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        git_revision = out.strip().decode('ascii')
+    except OSError:
+        git_revision = u"Unknown"
+
+    return git_revision
 
 
 def read(fname):
@@ -15,10 +44,11 @@ def read(fname):
 setup(
     name="mozdef_client",
     py_modules=['mozdef_client'],
-    version="1.0.11",
+    version=VERSION,
     author="Guillaume Destuynder",
     author_email="gdestuynder@mozilla.com",
-    description=("A client library to send messages/events using MozDef"),
+    description=('A client library to send messages/events using MozDef\n' +
+                 'This package is built upon commit '+git_version()),
     license="MPL",
     keywords="mozdef client library",
     url="https://github.com/mozilla/mozdef_client",
