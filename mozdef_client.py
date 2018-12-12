@@ -165,7 +165,7 @@ class MozDefMessage(object):
 
 class MozDefMsg(object):
     def __init__(self, hostname, summary=None, category='event',
-        severity='INFO', tags=[], details={}):
+        severity='INFO', source='mozdef_client', tags=[], details={}):
         """This class is a compatibility layer for code which uses the older
         MozDefMsg class interface. This class can be used to send messages
         to MozDef and is an alternative to the new classes (like MozDefEvent)
@@ -188,6 +188,7 @@ class MozDefMsg(object):
         self.tags = tags
         self.severity = severity
         self.hostname = hostname
+        self.source = source
 
         self.log = {}
         self.log['details'] = {}
@@ -203,17 +204,20 @@ class MozDefMsg(object):
         self.syslogOnly = False
 
     def send(self, summary=None, category=None, severity=None, tags=None,
-        details=None):
+        details=None, source=None):
         tsummary = summary
         tcategory = category
         tseverity = severity
         ttags = tags
         tdetails = details
+        tsource = source
 
         if tsummary == None:
             tsummary = self.summary
         if tcategory == None:
             tcategory = self.category
+        if tsource == None:
+            tsource = self.source
         if tseverity == None:
             tseverity = self.severity
         if ttags == None:
@@ -226,6 +230,7 @@ class MozDefMsg(object):
         amsg.summary = tsummary
         amsg.tags = ttags
         amsg.details = tdetails
+        amsg.source = tsource
 
         if type(self.verify_certificate) is str:
             amsg.set_verify(True)
@@ -269,24 +274,32 @@ class MozDefVulnerability(MozDefMessage):
         self._msgtype = self.MSGTYPE_VULNERABILITY
 
 class MozDefEvent(MozDefMessage):
-    SEVERITY_INFO = 0
-    SEVERITY_WARNING = 1
-    SEVERITY_CRITICAL = 2
-    SEVERITY_ERROR = 3
-    SEVERITY_DEBUG = 4
+    SEVERITY_DEBUG = 0
+    SEVERITY_INFO = 1
+    SEVERITY_NOTICE = 2
+    SEVERITY_WARNING = 3
+    SEVERITY_ERROR = 4    
+    SEVERITY_CRITICAL = 5
+    SEVERITY_ALERT = 6
+    SEVERITY_EMERGENCY = 7
 
     _sevmap = {
-        SEVERITY_INFO: ['INFO', syslog.LOG_INFO],
-        SEVERITY_WARNING: ['WARNING', syslog.LOG_WARNING],
-        SEVERITY_CRITICAL: ['CRITICAL', syslog.LOG_CRIT],
-        SEVERITY_ERROR: ['ERROR', syslog.LOG_ERR],
         SEVERITY_DEBUG: ['DEBUG', syslog.LOG_DEBUG],
+        SEVERITY_INFO: ['INFO', syslog.LOG_INFO],
+        SEVERITY_NOTICE: ['NOTICE',syslog.LOG_NOTICE],
+        SEVERITY_WARNING: ['WARNING', syslog.LOG_WARNING],
+        SEVERITY_ERROR: ['ERROR', syslog.LOG_ERR],        
+        SEVERITY_CRITICAL: ['CRITICAL', syslog.LOG_CRIT],
+        SEVERITY_ALERT: ['ALERT', syslog.LOG_ALERT],
+        SEVERITY_EMERGENCY: ['EMERGENCY', syslog.LOG_EMERG],
+
     }
 
     def __init__(self, url):
         MozDefMessage.__init__(self, url)
         self._msgtype = self.MSGTYPE_EVENT
         self._category = 'event'
+        self._source = None
         self._process_name = sys.argv[0]
         self._process_id = os.getpid()
         self._severity = self.SEVERITY_INFO
@@ -367,6 +380,7 @@ class MozDefEvent(MozDefMessage):
         self._sendlog['processname'] = self._process_name
         self._sendlog['hostname'] = self.hostname
         self._sendlog['category'] = self._category
+        self._sendlog['source'] = self._source
         self._sendlog['details'] = self.details
         self._sendlog['summary'] = self.summary
         self._sendlog['tags'] = self.tags
