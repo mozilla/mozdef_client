@@ -1,7 +1,6 @@
 language: python
 python:
   - "2.7"
-  - "3.6"
 branches:
   # Restrict push builds to only master
   only:
