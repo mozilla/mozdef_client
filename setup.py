@@ -51,6 +51,21 @@ setup(
     version=VERSION,
     author="Guillaume Destuynder",
     author_email="gdestuynder@mozilla.com",
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: System :: Logging",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+        "Natural Language :: English",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+    ],
     description=('A client library to send messages/events using MozDef\n' +
                  'This package is built upon commit ' + git_version()),
     license="MPL",
@@ -61,11 +76,5 @@ setup(
         'requests_futures',
         'pytz',
         'boto3'
-    ],
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Topic :: System :: Logging",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
     ],
 )
