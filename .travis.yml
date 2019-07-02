@@ -9,6 +9,7 @@ branches:
 before_install:
   - set -e
 install:
+  - pip install -e .
   - pip install -r requirements.txt
   - pip install -r tests/requirements.txt
 script:
