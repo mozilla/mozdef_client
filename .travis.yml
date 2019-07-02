@@ -1,0 +1,13 @@
+language: python
+python:
+  - "2.7"
+branches:
+  # Restrict push builds to only master
+  only:
+  - master
+before_install:
+  - set -e
+install:
+  - pip install -r requirements.txt
+script:
+  - make tests

@@ -182,16 +182,16 @@ class MozDefTests(unittest.TestCase):
         m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
         self.assertIsNotNone(m)
 
-    def testSimpleSqs(self):
-        m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
-        if not boto_loaded:
-            raise ImportError("Boto3 is not loaded")
-        m.sendToSqs = True
-        m.sqsRegion = 'us-west-1'
-        m.sqsQueueName = 'test'
-        m.sqsAWSAccountId = 'test'
-        m.send('hi')
-        self.assertIsNotNone(m)
+    # def testSimpleSqs(self):
+    #     m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
+    #     if not boto_loaded:
+    #         raise ImportError("Boto3 is not loaded")
+    #     m.sendToSqs = True
+    #     m.sqsRegion = 'us-west-1'
+    #     m.sqsQueueName = 'test'
+    #     m.sqsAWSAccountId = 'test'
+    #     m.send('hi')
+    #     self.assertIsNotNone(m)
 
     def testSimpleSyslog(self):
         m = MozDefMsg('http://127.0.0.1', tags=['openvpn', 'duosecurity'])
