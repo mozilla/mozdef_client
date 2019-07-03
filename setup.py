@@ -7,7 +7,10 @@
 
 import os
 import subprocess
-from setuptools import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 VERSION = '1.0.11'
 
@@ -41,17 +44,19 @@ def git_version():
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+
 setup(
     name="mozdef_client",
-    py_modules=['mozdef_client'],
+    packages=["mozdef_client"],
     version=VERSION,
     author="Guillaume Destuynder",
     author_email="gdestuynder@mozilla.com",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
-        'Natural Language :: English',
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: System :: Logging",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+        "Natural Language :: English",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
@@ -62,16 +67,14 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     description=('A client library to send messages/events using MozDef\n' +
-                 'This package is built upon commit '+git_version()),
+                 'This package is built upon commit ' + git_version()),
     license="MPL",
     keywords="mozdef client library",
     url="https://github.com/mozilla/mozdef_client",
     long_description=read('README.rst'),
-    install_requires=['requests_futures', 'pytz', 'boto3'],
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Topic :: System :: Logging",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    install_requires=[
+        'requests_futures',
+        'pytz',
+        'boto3'
     ],
 )
