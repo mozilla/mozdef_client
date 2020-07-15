@@ -38,6 +38,7 @@ class MozDefMessage(object):
 
         self._httpsession = Session()
         self._httpsession.trust_env = False
+        self._httpsession.hooks['response'].append(self._httpsession_cb)
         self._url = url
         self.hostname = socket.getfqdn()
         # This is due to some systems incorrectly
@@ -127,12 +128,9 @@ class MozDefMessage(object):
         # When updating either path (futures_loaded or not loaded) please ensure both have the same functionality
         # future_loaded is used by Python 2, the non-loaded version if for Python 3
         if futures_loaded:
-            self._httpsession.post(self._url, buf,
-                verify=vflag,
-                background_callback=self._httpsession_cb)
+            self._httpsession.post(self._url, buf, verify=vflag)
         else:
-           response = self._httpsession.post(self._url, buf,
-                verify=vflag)
+           response = self._httpsession.post(self._url, buf, verify=vflag)
            if response.ok == False:
                 if not self._fire_and_forget:
                     raise MozDefError('POST failed with code %r msg %s' % \
