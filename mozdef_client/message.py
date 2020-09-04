@@ -56,6 +56,12 @@ class MozDefMessage(object):
         self._verify_certificate = False
         self._verify_path = None
 
+    def __del__(self):
+        '''
+            Close out any Sessions we started.
+        '''
+        self._httpsession.close()
+
     def validate(self):
         return True
 
