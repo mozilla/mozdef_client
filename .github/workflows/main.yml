@@ -1,0 +1,20 @@
+name: run-tests
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '2.7', '3.9']
+    name: Python ${{ matrix.python-version }} tests
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2.2.2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install --editable $GITHUB_WORKSPACE
+      - run: pip install --requirement $GITHUB_WORKSPACE/requirements.txt --requirement $GITHUB_WORKSPACE/tests/requirements.txt
+      - run: make test
