@@ -37,7 +37,26 @@ class MozDefEvent(MozDefMessage):
         SEVERITY_CRITICAL: ['CRITICAL', syslog.LOG_CRIT],
         SEVERITY_ALERT: ['ALERT', syslog.LOG_ALERT],
         SEVERITY_EMERGENCY: ['EMERGENCY', syslog.LOG_EMERG],
+    }
 
+    _facilitymap = {
+        'kern': syslog.LOG_KERN,
+        'user': syslog.LOG_USER,
+        'mail': syslog.LOG_MAIL,
+        'daemon': syslog.LOG_DAEMON,
+        'auth': syslog.LOG_AUTH,
+        'lpr': syslog.LOG_LPR,
+        'news': syslog.LOG_NEWS,
+        'uucp': syslog.LOG_UUCP,
+        'cron': syslog.LOG_CRON,
+        'local0': syslog.LOG_LOCAL0,
+        'local1': syslog.LOG_LOCAL1,
+        'local2': syslog.LOG_LOCAL2,
+        'local3': syslog.LOG_LOCAL3,
+        'local4': syslog.LOG_LOCAL4,
+        'local5': syslog.LOG_LOCAL5,
+        'local6': syslog.LOG_LOCAL6,
+        'local7': syslog.LOG_LOCAL7,
     }
 
     def __init__(self, url):
@@ -47,6 +66,7 @@ class MozDefEvent(MozDefMessage):
         self._source = None
         self._process_name = sys.argv[0]
         self._process_id = os.getpid()
+        self._facility = syslog.LOG_USER
         self._severity = self.SEVERITY_INFO
         self.timestamp = None
 
@@ -76,6 +96,16 @@ class MozDefEvent(MozDefMessage):
             if self._sevmap[i][0] == x:
                 self._severity = i
 
+    def set_facility_from_string(self, x):
+        original_value = self._facility
+        check_input = self._facilitymap.get(x.lower())
+        if check_input is None:
+            # The input was not allowed.  Put it back to the
+            # original value, assuming that was okay.
+            self._facility = self._facilitymap.get(original_value, syslog.LOG_USER)
+        else:
+            self._facility = check_input
+
     def syslog_convert(self):
         s = json.dumps(self._sendlog)
         return s
@@ -85,6 +115,12 @@ class MozDefEvent(MozDefMessage):
         # for i in self._sevmap:
             # if i == self._severity:
                 # syspri = self._sevmap[i][1]
+        # Allow us to set the facility of the outbound messages:
+        syslog.openlog(facility=self._facility)
+        # IMPROVEME: all messages go out as default priority LOG_INFO.
+        # This is not that important, as syslog here is used as a conveyance
+        # rather than a discriminator.  The payload will report its own
+        # severity to the end system (mozdef, splunk, what have you)
         syslog.syslog(self.syslog_convert())
 
     def send_sqs(self):
