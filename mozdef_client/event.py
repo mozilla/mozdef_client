@@ -96,7 +96,7 @@ class MozDefEvent(MozDefMessage):
             if self._sevmap[i][0] == x:
                 self._severity = i
 
-     def set_facility_from_string(self, x):
+    def set_facility_from_string(self, x):
         original_value = self._facility
         check_input = self._facilitymap.get(x.lower())
         if check_input is None:
