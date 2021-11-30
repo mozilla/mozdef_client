@@ -85,6 +85,7 @@ class MozDefEvent(MozDefMessage):
         # for i in self._sevmap:
             # if i == self._severity:
                 # syspri = self._sevmap[i][1]
+        syslog.openlog()
         syslog.syslog(self.syslog_convert())
 
     def send_sqs(self):
