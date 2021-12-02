@@ -49,7 +49,7 @@ install: clean ## install the package to the active Python's site-packages
 	python setup.py install
 
 rpm:
-	fpm -s python -t rpm -d pytz -d python-requests-futures --replaces python-mozdef ./setup.py
+	fpm -s python -t rpm -d pytz -d python-requests-futures --provides python-mozdef-client --rpm-dist "$$(rpmbuild -E '%{?dist}' | sed -e 's#^\.##')" ./setup.py
 
 deb:
 	fpm -s python -t deb ./setup.py
